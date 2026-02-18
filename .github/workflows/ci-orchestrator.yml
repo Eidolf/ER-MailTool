@@ -1,0 +1,76 @@
+name: CI Orchestrator
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution Mode'
+        required: true
+        default: 'Economy'
+        type: choice
+        options:
+          - Economy
+          - Full
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.set-mode.outputs.mode }}
+    steps:
+      - id: set-mode
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "mode=Full" >> $GITHUB_OUTPUT
+          else
+            echo "mode=Economy" >> $GITHUB_OUTPUT
+          fi
+
+  lint:
+    uses: ./.github/workflows/lint.yml
+    with:
+      fix: false # Auto-fix is handled by PR Assistant (Janitor)
+
+  test:
+    needs: [lint, config]
+    uses: ./.github/workflows/test.yml
+    with:
+      mode: ${{ needs.config.outputs.mode }}
+
+  build:
+    needs: [test]
+    if: needs.config.outputs.mode == 'Full'
+    uses: ./.github/workflows/build.yml
+
+  security:
+    needs: [build]
+    if: needs.config.outputs.mode == 'Full'
+    runs-on: ubuntu-latest
+    name: "Security Scanning"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  auto-merge:
+    needs: [test, build]
+    if: github.event_name == 'pull_request' && (github.actor == 'dependabot[bot]' || github.actor == 'renovate[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable Auto-Merge
+        run: gh pr merge --auto --merge "${{ github.event.pull_request.html_url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

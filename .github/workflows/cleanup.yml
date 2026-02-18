@@ -1,0 +1,20 @@
+name: Weekly Cleanup
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete Old Artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: '*'
+          failOnError: false
+          useGlob: true
+          olderThanBytes: 10485760 # 10MB

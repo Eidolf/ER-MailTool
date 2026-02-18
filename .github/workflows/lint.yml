@@ -1,0 +1,59 @@
+name: Lint
+
+on:
+  workflow_call:
+    inputs:
+      fix:
+        type: boolean
+        default: false
+        description: "Auto-fix issues?"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: |
+          if [ "${{ inputs.fix }}" = "true" ]; then
+            ruff check . --fix
+            ruff format .
+          else
+            ruff check .
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ESLint
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: |
+          if [ "${{ inputs.fix }}" = "true" ]; then
+            npm run lint:fix
+          else
+            npm run lint
+          fi
+
+      - name: Commit Fixes
+        if: inputs.fix == true
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-fix linting issues"
+          branch: ${{ github.head_ref }}

@@ -1,0 +1,29 @@
+name: PR Assistant (Janitor)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auto-fix:
+    if: github.actor != 'github-actions[bot]' # Prevent loops
+    permissions:
+      contents: write
+    uses: ./.github/workflows/lint.yml
+    with:
+      fix: true
+
+  comment-on-failure:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [auto-fix]
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "### ❌ Build Failed\n\n**Probable Cause**: Linter found issues that could not be auto-fixed.\n**Suggested Fix**: Run `poetry run ruff check .` locally."
+            })

@@ -1,0 +1,33 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: check
+        run: |
+          # Check for commits in the last 24 hours
+          if [ -z "$(git log --since='24 hours ago')" ]; then
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "No changes in last 24h. Skipping."
+          else
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "Changes detected. Running nightly."
+          fi
+
+  nightly-run:
+    needs: [check-changes]
+    if: needs.check-changes.outputs.should_run == 'true'
+    uses: ./.github/workflows/ci-orchestrator.yml
+    with:
+      mode: 'Full'
+    # Note: secrets inheritance is implicit in reusable workflows within same repo

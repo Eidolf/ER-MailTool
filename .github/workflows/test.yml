@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        default: 'Economy'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      # Example service container integration as requested
+      # redis:
+      #   image: redis
+      #   ports:
+      #     - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+          
+      - name: Run Unit Tests
+        run: poetry run pytest --cov=src
+
+      - name: Run E2E Tests
+        if: inputs.mode == 'Full'
+        run: echo "Running expensive E2E tests (Playwright)..." 
+        # Integration logic for Playwright would go here
