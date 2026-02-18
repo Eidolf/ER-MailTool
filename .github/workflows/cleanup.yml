@@ -17,4 +17,3 @@ jobs:
           name: '*'
           failOnError: false
           useGlob: true
-          olderThanBytes: 10485760 # 10MB

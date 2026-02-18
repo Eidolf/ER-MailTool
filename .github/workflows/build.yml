@@ -25,7 +25,13 @@ jobs:
           
       - name: Build Executable
         run: |
-          poetry run pyinstaller --onefile --name er-mailtool src/main.py
+          # Get CustomTkinter location for data files
+          CTK_PATH=$(poetry run python -c "import customtkinter; print(customtkinter.__path__[0])")
+          
+          poetry run pyinstaller --noconfirm --onefile --windowed --name er-mailtool \
+            --add-data "$CTK_PATH:customtkinter/" \
+            --hidden-import=customtkinter \
+            src/main.py
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

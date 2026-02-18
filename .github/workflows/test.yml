@@ -10,7 +10,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
+    # services:
       # Example service container integration as requested
       # redis:
       #   image: redis
