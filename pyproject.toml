@@ -21,6 +21,8 @@ rich = "^13.7.0"
 slowapi = "^0.1.9"
 customtkinter = "^5.2.2"
 packaging = "^23.2"
+dnspython = "^2.8.0"
+python-whois = "^0.9.6"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
