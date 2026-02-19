@@ -1,7 +1,5 @@
 import customtkinter as ctk
-import threading
-import os
-from .mailer import EmailService
+from src.ui.smtp_tester import SMTPTester
 
 # Theme Settings
 ctk.set_appearance_mode("Dark")
@@ -11,99 +9,68 @@ class ERMailToolGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("ER-MailTool - Secure Email Tester")
-        self.geometry("800x600")
+        self.title("ER-MailTool - Offline MX Toolbox")
+        self.geometry("1000x700")
 
-        # Layout
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(5, weight=1)
+        # Layout: Sidebar (Navigation) + Main Content
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        # Header
-        self.header = ctk.CTkLabel(self, text="ER-MailTool", font=("Roboto", 24, "bold"))
-        self.header.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
+        # --- Sidebar ---
+        self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid_rowconfigure(5, weight=1)
 
-        # Configuration Frame
-        self.config_frame = ctk.CTkFrame(self)
-        self.config_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
-        self.config_frame.grid_columnconfigure((0, 1), weight=1)
+        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="ER-MailTool", font=ctk.CTkFont(size=20, weight="bold"))
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
-        # Config Inputs
-        self.server_entry = self.create_input(self.config_frame, "SMTP Server", "smtp.office365.com", 0, 0)
-        self.port_entry = self.create_input(self.config_frame, "Port", "587", 0, 1)
-        self.user_entry = self.create_input(self.config_frame, "Username (Email)", os.getenv("SMTP_USERNAME", ""), 1, 0)
-        self.pass_entry = self.create_input(self.config_frame, "Password", os.getenv("SMTP_PASSWORD", ""), 1, 1, show="*")
-
-        # Email Content Frame
-        self.content_frame = ctk.CTkFrame(self)
-        self.content_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
-        self.content_frame.grid_columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(self.content_frame, text="To:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.to_entry = ctk.CTkEntry(self.content_frame, placeholder_text="recipient@example.com")
-        self.to_entry.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
-
-        ctk.CTkLabel(self.content_frame, text="Subject:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.subject_entry = ctk.CTkEntry(self.content_frame, placeholder_text="Test Subject")
-        self.subject_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
-
-        ctk.CTkLabel(self.content_frame, text="Body:").grid(row=2, column=0, padx=10, pady=5, sticky="nw")
-        self.body_entry = ctk.CTkTextbox(self.content_frame, height=100)
-        self.body_entry.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
-        self.body_entry.insert("0.0", "This is a test email sent via ER-MailTool.")
-
-        # Action Buttons
-        self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.button_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+        # Nav Buttons
+        self.btn_smtp = self.create_nav_button("SMTP Tester", 1, self.show_smtp)
+        self.btn_mx = self.create_nav_button("MX Lookup", 2, self.show_mx)
+        self.btn_dns = self.create_nav_button("DNS Check", 3, self.show_dns)
         
-        self.send_button = ctk.CTkButton(self.button_frame, text="Send Email", command=self.start_send_thread, fg_color="#0066cc", hover_color="#0052a3")
-        self.send_button.pack(side="right")
+        # --- Main Content Area ---
+        self.main_area = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
+        self.main_area.grid(row=0, column=1, sticky="nsew")
+        self.main_area.grid_columnconfigure(0, weight=1)
+        self.main_area.grid_rowconfigure(0, weight=1)
 
-        # Log Console
-        self.log_label = ctk.CTkLabel(self, text="Execution Logs", anchor="w")
-        self.log_label.grid(row=4, column=0, padx=20, pady=(10, 0), sticky="w")
+        # -- Views --
+        self.smtp_view = SMTPTester(self.main_area)
+        self.mx_view = self.create_placeholder_view("MX Lookup Tool (Coming Soon)")
+        self.dns_view = self.create_placeholder_view("DNS Check Tool (Coming Soon)")
+
+        # Default View
+        self.show_smtp()
+
+    def create_nav_button(self, text, row, command):
+        btn = ctk.CTkButton(self.sidebar_frame, text=text, command=command, fg_color="transparent", text_color=("gray10", "#DCE4EE"), hover_color=("gray70", "gray30"), anchor="w")
+        btn.grid(row=row, column=0, padx=20, pady=10, sticky="ew")
+        return btn
+
+    def create_placeholder_view(self, text):
+        frame = ctk.CTkFrame(self.main_area)
+        label = ctk.CTkLabel(frame, text=text, font=ctk.CTkFont(size=20))
+        label.place(relx=0.5, rely=0.5, anchor="center")
+        return frame
+
+    def show_view(self, view):
+        # Hide all
+        self.smtp_view.grid_forget()
+        self.mx_view.grid_forget()
+        self.dns_view.grid_forget()
         
-        self.log_console = ctk.CTkTextbox(self, state="disabled", font=("Consolas", 12))
-        self.log_console.grid(row=5, column=0, padx=20, pady=(5, 20), sticky="nsew")
+        # Show selected
+        view.grid(row=0, column=0, sticky="nsew")
 
-    def create_input(self, parent, label_text, default_val, row, col, show=None):
-        frame = ctk.CTkFrame(parent, fg_color="transparent")
-        frame.grid(row=row, column=col, padx=10, pady=5, sticky="ew")
-        ctk.CTkLabel(frame, text=label_text).pack(anchor="w")
-        entry = ctk.CTkEntry(frame, show=show)
-        entry.pack(fill="x")
-        entry.insert(0, default_val)
-        return entry
+    def show_smtp(self):
+        self.show_view(self.smtp_view)
 
-    def log(self, message):
-        self.log_console.configure(state="normal")
-        self.log_console.insert("end", message + "\n")
-        self.log_console.see("end")
-        self.log_console.configure(state="disabled")
+    def show_mx(self):
+        self.show_view(self.mx_view)
 
-    def start_send_thread(self):
-        self.send_button.configure(state="disabled", text="Sending...")
-        threading.Thread(target=self.send_email, daemon=True).start()
-
-    def send_email(self):
-        server = self.server_entry.get()
-        port = int(self.port_entry.get())
-        user = self.user_entry.get()
-        password = self.pass_entry.get()
-        
-        to_addr = self.to_entry.get()
-        subject = self.subject_entry.get()
-        body = self.body_entry.get("0.0", "end")
-
-        service = EmailService(server, port, user, password)
-        
-        try:
-            self.log("-" * 40)
-            service.send_email(to_addr, subject, body, callback=self.log)
-            self.log("-" * 40)
-        except Exception as e:
-            pass # Error is already logged in callback
-        finally:
-            self.send_button.configure(state="normal", text="Send Email")
+    def show_dns(self):
+        self.show_view(self.dns_view)
 
 def run_gui():
     app = ERMailToolGUI()
