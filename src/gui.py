@@ -1,9 +1,11 @@
 import customtkinter as ctk
-from src.ui.smtp_tester import SMTPTester
+from src.ui.authenticated_smtp import AuthenticatedSMTPTester
+from src.ui.anonymous_smtp import AnonymousSMTPTester
 from src.ui.mx_lookup import MXLookup
 from src.ui.dns_lookup import DNSLookup
 from src.ui.port_scanner import PortScanner
 from src.ui.blacklist_check import BlacklistCheck
+from src.ui.whois_lookup import WhoisLookup
 from src.ui.spf_analyzer import SPFAnalyzer
 from src.ui.dmarc_analyzer import DMARCAnalyzer
 from src.ui.dkim_lookup import DKIMLookup
@@ -34,21 +36,22 @@ class ERMailToolGUI(ctk.CTk):
         # Nav Buttons
         # Connect & Test
         self.create_nav_label("Connectivity", 1)
-        self.btn_smtp = self.create_nav_button("SMTP Tester", 2, self.show_smtp)
-        self.btn_port = self.create_nav_button("Port Scanner", 3, self.show_port)
+        self.btn_auth_smtp = self.create_nav_button("Authenticated SMTP", 2, self.show_auth_smtp)
+        self.btn_anon_smtp = self.create_nav_button("Anonymous SMTP", 3, self.show_anon_smtp)
+        self.btn_port = self.create_nav_button("Port Scanner", 4, self.show_port)
         
         # DNS & Network
-        self.create_nav_label("Network / DNS", 4)
-        self.btn_mx = self.create_nav_button("MX Lookup", 5, self.show_mx)
-        self.btn_dns = self.create_nav_button("DNS Lookup", 6, self.show_dns)
-        self.btn_whois = self.create_nav_button("Whois Lookup", 7, self.show_whois)
+        self.create_nav_label("Network / DNS", 5)
+        self.btn_mx = self.create_nav_button("MX Lookup", 6, self.show_mx)
+        self.btn_dns = self.create_nav_button("DNS Lookup", 7, self.show_dns)
+        self.btn_whois = self.create_nav_button("Whois Lookup", 8, self.show_whois)
         
         # Security / Auth
-        self.create_nav_label("Security / Auth", 8)
-        self.btn_spf = self.create_nav_button("SPF Analyzer", 9, self.show_spf)
-        self.btn_dmarc = self.create_nav_button("DMARC Analyzer", 10, self.show_dmarc)
-        self.btn_dkim = self.create_nav_button("DKIM Lookup", 11, self.show_dkim)
-        self.btn_rbl = self.create_nav_button("Blacklist Check", 12, self.show_rbl)
+        self.create_nav_label("Security / Auth", 9)
+        self.btn_spf = self.create_nav_button("SPF Analyzer", 10, self.show_spf)
+        self.btn_dmarc = self.create_nav_button("DMARC Analyzer", 11, self.show_dmarc)
+        self.btn_dkim = self.create_nav_button("DKIM Lookup", 12, self.show_dkim)
+        self.btn_rbl = self.create_nav_button("Blacklist Check", 13, self.show_rbl)
 
         # --- Main Content Area ---
         self.main_area = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -58,7 +61,8 @@ class ERMailToolGUI(ctk.CTk):
 
         # -- Views --
         self.views = {}
-        self.views["smtp"] = SMTPTester(self.main_area)
+        self.views["auth_smtp"] = AuthenticatedSMTPTester(self.main_area)
+        self.views["anon_smtp"] = AnonymousSMTPTester(self.main_area)
         self.views["mx"] = MXLookup(self.main_area)
         self.views["dns"] = DNSLookup(self.main_area)
         self.views["port"] = PortScanner(self.main_area)
@@ -69,7 +73,7 @@ class ERMailToolGUI(ctk.CTk):
         self.views["dkim"] = DKIMLookup(self.main_area)
         
         # Default View
-        self.show_smtp()
+        self.show_auth_smtp()
 
     def create_nav_label(self, text, row):
         lbl = ctk.CTkLabel(self.sidebar_frame, text=text, text_color="gray70", anchor="w", font=ctk.CTkFont(size=12, weight="bold"))
@@ -85,7 +89,8 @@ class ERMailToolGUI(ctk.CTk):
             view.grid_forget()
         self.views[view_name].grid(row=0, column=0, sticky="nsew")
 
-    def show_smtp(self): self.show_view("smtp")
+    def show_auth_smtp(self): self.show_view("auth_smtp")
+    def show_anon_smtp(self): self.show_view("anon_smtp")
     def show_mx(self): self.show_view("mx")
     def show_dns(self): self.show_view("dns")
     def show_port(self): self.show_view("port")

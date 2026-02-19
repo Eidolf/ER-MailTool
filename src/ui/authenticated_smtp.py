@@ -3,7 +3,7 @@ import threading
 import os
 from src.mailer import EmailService
 
-class SMTPTester(ctk.CTkFrame):
+class AuthenticatedSMTPTester(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
 
@@ -12,7 +12,7 @@ class SMTPTester(ctk.CTkFrame):
         self.grid_rowconfigure(5, weight=1)
 
         # Header
-        self.header = ctk.CTkLabel(self, text="SMTP Tester", font=("Roboto", 20, "bold"))
+        self.header = ctk.CTkLabel(self, text="Authenticated SMTP Test", font=("Roboto", 20, "bold"))
         self.header.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
 
         # Configuration Frame
