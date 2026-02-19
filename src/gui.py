@@ -14,7 +14,7 @@ class ERMailToolGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("ER-MailTool - Offline MX Toolbox")
+        self.title("ER-MailTool")
         self.geometry("1100x700")
 
         # Layout: Sidebar (Navigation) + Main Content
