@@ -101,3 +101,48 @@ class NetworkTools:
             return w
         except Exception as e:
             return str(e)
+
+    @staticmethod
+    def get_spf_record(domain):
+        """Fetch and return the SPF record."""
+        try:
+            records = dns.resolver.resolve(domain, 'TXT')
+            for record in records:
+                txt_data = b"".join(record.strings).decode("utf-8")
+                if "v=spf1" in txt_data:
+                    return txt_data
+            return "No SPF record found."
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+    @staticmethod
+    def get_dmarc_record(domain):
+        """Fetch and return the DMARC record."""
+        try:
+            target = f"_dmarc.{domain}"
+            records = dns.resolver.resolve(target, 'TXT')
+            for record in records:
+                txt_data = b"".join(record.strings).decode("utf-8")
+                if "v=DMARC1" in txt_data:
+                    return txt_data
+            return "No DMARC record found."
+        except dns.resolver.NXDOMAIN:
+             return "No DMARC record found (NXDOMAIN)."
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+    @staticmethod
+    def get_dkim_record(domain, selector):
+        """Fetch and return the DKIM record for a specific selector."""
+        try:
+            target = f"{selector}._domainkey.{domain}"
+            records = dns.resolver.resolve(target, 'TXT')
+            for record in records:
+                txt_data = b"".join(record.strings).decode("utf-8")
+                if "v=DKIM1" in txt_data or "k=rsa" in txt_data or "p=" in txt_data:
+                     return txt_data
+            return "No DKIM record found."
+        except dns.resolver.NXDOMAIN:
+             return f"No DKIM record found at {target}."
+        except Exception as e:
+            return f"Error: {str(e)}"

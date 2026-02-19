@@ -4,7 +4,9 @@ from src.ui.mx_lookup import MXLookup
 from src.ui.dns_lookup import DNSLookup
 from src.ui.port_scanner import PortScanner
 from src.ui.blacklist_check import BlacklistCheck
-from src.ui.whois_lookup import WhoisLookup
+from src.ui.spf_analyzer import SPFAnalyzer
+from src.ui.dmarc_analyzer import DMARCAnalyzer
+from src.ui.dkim_lookup import DKIMLookup
 
 # Theme Settings
 ctk.set_appearance_mode("Dark")
@@ -15,7 +17,7 @@ class ERMailToolGUI(ctk.CTk):
         super().__init__()
 
         self.title("ER-MailTool")
-        self.geometry("1100x700")
+        self.geometry("1100x800")
 
         # Layout: Sidebar (Navigation) + Main Content
         self.grid_columnconfigure(1, weight=1)
@@ -24,19 +26,30 @@ class ERMailToolGUI(ctk.CTk):
         # --- Sidebar ---
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(10, weight=1)
+        self.sidebar_frame.grid_rowconfigure(15, weight=1)
 
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="ER-MailTool", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
         # Nav Buttons
-        self.btn_smtp = self.create_nav_button("SMTP Tester", 1, self.show_smtp)
-        self.btn_mx = self.create_nav_button("MX Lookup", 2, self.show_mx)
-        self.btn_dns = self.create_nav_button("DNS Lookup", 3, self.show_dns)
-        self.btn_port = self.create_nav_button("Port Scanner", 4, self.show_port)
-        self.btn_rbl = self.create_nav_button("Blacklist Check", 5, self.show_rbl)
-        self.btn_whois = self.create_nav_button("Whois Lookup", 6, self.show_whois)
+        # Connect & Test
+        self.create_nav_label("Connectivity", 1)
+        self.btn_smtp = self.create_nav_button("SMTP Tester", 2, self.show_smtp)
+        self.btn_port = self.create_nav_button("Port Scanner", 3, self.show_port)
         
+        # DNS & Network
+        self.create_nav_label("Network / DNS", 4)
+        self.btn_mx = self.create_nav_button("MX Lookup", 5, self.show_mx)
+        self.btn_dns = self.create_nav_button("DNS Lookup", 6, self.show_dns)
+        self.btn_whois = self.create_nav_button("Whois Lookup", 7, self.show_whois)
+        
+        # Security / Auth
+        self.create_nav_label("Security / Auth", 8)
+        self.btn_spf = self.create_nav_button("SPF Analyzer", 9, self.show_spf)
+        self.btn_dmarc = self.create_nav_button("DMARC Analyzer", 10, self.show_dmarc)
+        self.btn_dkim = self.create_nav_button("DKIM Lookup", 11, self.show_dkim)
+        self.btn_rbl = self.create_nav_button("Blacklist Check", 12, self.show_rbl)
+
         # --- Main Content Area ---
         self.main_area = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.main_area.grid(row=0, column=1, sticky="nsew")
@@ -51,21 +64,25 @@ class ERMailToolGUI(ctk.CTk):
         self.views["port"] = PortScanner(self.main_area)
         self.views["rbl"] = BlacklistCheck(self.main_area)
         self.views["whois"] = WhoisLookup(self.main_area)
+        self.views["spf"] = SPFAnalyzer(self.main_area)
+        self.views["dmarc"] = DMARCAnalyzer(self.main_area)
+        self.views["dkim"] = DKIMLookup(self.main_area)
         
         # Default View
         self.show_smtp()
 
+    def create_nav_label(self, text, row):
+        lbl = ctk.CTkLabel(self.sidebar_frame, text=text, text_color="gray70", anchor="w", font=ctk.CTkFont(size=12, weight="bold"))
+        lbl.grid(row=row, column=0, padx=20, pady=(15, 0), sticky="ew")
+
     def create_nav_button(self, text, row, command):
         btn = ctk.CTkButton(self.sidebar_frame, text=text, command=command, fg_color="transparent", text_color=("gray10", "#DCE4EE"), hover_color=("gray70", "gray30"), anchor="w")
-        btn.grid(row=row, column=0, padx=20, pady=10, sticky="ew")
+        btn.grid(row=row, column=0, padx=20, pady=2, sticky="ew")
         return btn
 
     def show_view(self, view_name):
-        # Hide all
         for view in self.views.values():
             view.grid_forget()
-        
-        # Show selected
         self.views[view_name].grid(row=0, column=0, sticky="nsew")
 
     def show_smtp(self): self.show_view("smtp")
@@ -74,6 +91,9 @@ class ERMailToolGUI(ctk.CTk):
     def show_port(self): self.show_view("port")
     def show_rbl(self): self.show_view("rbl")
     def show_whois(self): self.show_view("whois")
+    def show_spf(self): self.show_view("spf")
+    def show_dmarc(self): self.show_view("dmarc")
+    def show_dkim(self): self.show_view("dkim")
 
 def run_gui():
     app = ERMailToolGUI()
