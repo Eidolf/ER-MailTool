@@ -35,8 +35,8 @@ def send(
 
 @app.command()
 def serve(
-    host: str = "0.0.0.0",
-    port: int = 8000
+    host: str = typer.Option("0.0.0.0", help="Host to bind"),
+    port: int = typer.Option(8000, help="Port to bind")
 ):
     """
     Start the secure API server.
