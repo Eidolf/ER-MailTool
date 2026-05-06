@@ -9,11 +9,14 @@ description = "A portable, secure email testing tool with O365 support."
 authors = ["DevSecOps <dev@example.com>"]
 packages = [{include = "src"}]
 
+[tool.poetry.scripts]
+er-mailtool = "src.main:main"
+
 [tool.poetry.dependencies]
 python = ">=3.11,<3.15"
 fastapi = "^0.109.0"
 uvicorn = "^0.27.0"
-typer = {extras = ["all"], version = "^0.9.0"}
+typer = {extras = ["all"], version = "^0.12.3"}
 pydantic = "^2.6.0"
 python-multipart = "^0.0.9"
 python-dotenv = "^1.0.0"

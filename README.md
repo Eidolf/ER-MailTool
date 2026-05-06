@@ -31,6 +31,21 @@ er-mailtool serve
 
 Access Swagger Docs at `http://localhost:8000/docs`.
 
+### Linux Server (Headless)
+
+If you are running on a Linux Testserver without a GUI, use the CLI or API mode:
+
+```bash
+# Install dependencies
+pip install .
+
+# Start the API server
+er-mailtool serve --host 0.0.0.0 --port 8000
+
+# Or run a specific CLI command
+er-mailtool send --to user@example.com --subject "Test" --body "Hello"
+```
+
 ### Configuration
 
 Copy `.env.example` to `.env`:

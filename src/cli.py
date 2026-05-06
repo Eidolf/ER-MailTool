@@ -6,7 +6,7 @@ from .mailer import EmailService
 
 load_dotenv()
 
-app = typer.Typer(help="ER-MailTool: Portable Secure Email Utility")
+app = typer.Typer(help="ER-MailTool: Portable Secure Email Utility", rich_markup_mode=None)
 
 @app.command()
 def send(
