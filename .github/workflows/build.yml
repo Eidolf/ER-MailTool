@@ -9,14 +9,25 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: er-mailtool-linux
+            binary_name: dist/er-mailtool
+            sep: ":"
+          - os: windows-latest
+            artifact_name: er-mailtool-windows
+            binary_name: dist/er-mailtool.exe
+            sep: ";"
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           
       - name: Install Dependencies
         run: |
@@ -24,22 +35,24 @@ jobs:
           poetry install
           
       - name: Build Executable
+        shell: bash
         run: |
-          # Get CustomTkinter location using pip show to avoid import errors in headless CI
-          CTK_LOCATION=$(poetry run pip show customtkinter | grep Location | cut -d' ' -f2)
-          CTK_PATH="$CTK_LOCATION/customtkinter"
-          
+          CTK_LOCATION=$(poetry run python -c "import customtkinter, os; print(os.path.dirname(customtkinter.__file__))")
           poetry run pyinstaller --noconfirm --onefile --windowed --name er-mailtool \
-            --add-data "$CTK_PATH:customtkinter/" \
+            --add-data "${CTK_LOCATION}${{ matrix.sep }}customtkinter/" \
             --hidden-import=customtkinter \
             src/main.py
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: er-mailtool-linux
-          path: dist/er-mailtool
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.binary_name }}
 
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:

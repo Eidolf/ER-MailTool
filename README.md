@@ -104,8 +104,8 @@ poetry run pyinstaller --noconfirm --onefile --windowed --name er-mailtool \
 ### CI / CD via GitHub Actions
 
 1. **Automated Test Builds & Artifacts**:
-   - Every push to `main` or manual trigger (`Actions` > `CI Orchestrator` with `Full` mode) runs SAST, tests, builds the standalone Linux executable, and generates an SBOM.
-   - Download the pre-built binary under the workflow's **Artifacts** (`er-mailtool-linux`).
+   - Every push to `main` or manual trigger (`Actions` > `CI Orchestrator` with `Full` mode) runs SAST, tests, builds standalone executables for **both Linux and Windows**, and generates an SBOM.
+   - Download the pre-built binaries under the workflow's **Artifacts** (`er-mailtool-linux` and `er-mailtool-windows`).
 
 2. **Official Version Releases**:
    - Navigate to `Actions` > `Release` > `Run workflow`.
