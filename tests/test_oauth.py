@@ -147,6 +147,40 @@ def test_api_jwt_decode_endpoint():
     data = response.json()
     assert data["payload"]["custom_claim"] == "hello_world"
 
+def test_send_email_graph_success():
+    mock_resp = MagicMock()
+    mock_resp.getcode.return_value = 202
+    mock_resp.__enter__.return_value = mock_resp
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        res = OAuthTester.send_email_graph(
+            access_token="fake_token",
+            from_user="sender@example.com",
+            to_email="recipient@example.com",
+            subject="Test Subject",
+            body="Hello body"
+        )
+        assert res["success"] is True
+        assert res["status_code"] == 202
+        assert "successfully sent" in res["message"]
+
+def test_api_oauth_send_endpoint():
+    mock_resp = MagicMock()
+    mock_resp.getcode.return_value = 202
+    mock_resp.__enter__.return_value = mock_resp
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        response = client.post("/oauth/send", json={
+            "access_token": "fake_token",
+            "from_email": "sender@example.com",
+            "to_email": "recipient@example.com",
+            "subject": "Test",
+            "body": "Hello",
+            "method": "graph"
+        })
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
 def test_cli_test_oauth_command():
     fake_token = make_dummy_jwt({"appid": "cli-app", "roles": ["Mail.Send"]})
     mock_resp = MagicMock()

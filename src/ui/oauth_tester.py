@@ -109,7 +109,10 @@ class OAuthTesterView(ctk.CTkFrame):
             text="🚀 Test OAuth & Fetch Token",
             command=self.start_test_thread,
             fg_color="#007acc",
-            hover_color="#005999"
+            hover_color="#005999",
+            width=220,
+            height=36,
+            font=("Roboto", 13, "bold")
         )
         self.btn_test.pack(side="left", padx=(0, 10))
 
@@ -119,6 +122,7 @@ class OAuthTesterView(ctk.CTkFrame):
             command=self.start_graph_thread,
             fg_color="#2b8a3e",
             hover_color="#237032",
+            height=36,
             state="disabled"
         )
         self.btn_graph.pack(side="left", padx=(0, 10))
@@ -129,6 +133,7 @@ class OAuthTesterView(ctk.CTkFrame):
             command=self.inspect_current_token,
             fg_color="#495057",
             hover_color="#343a40",
+            height=36,
             state="disabled"
         )
         self.btn_inspect.pack(side="left", padx=(0, 10))
@@ -139,13 +144,71 @@ class OAuthTesterView(ctk.CTkFrame):
             command=self.clear_logs,
             fg_color="transparent",
             border_width=1,
-            width=80
+            height=36,
+            width=90
         )
         self.btn_clear.pack(side="right")
 
+        # Send Test Email via OAuth (Graph / SMTP XOAUTH2) Frame
+        self.mail_frame = ctk.CTkFrame(self)
+        self.mail_frame.grid(row=5, column=0, padx=20, pady=5, sticky="ew")
+        self.mail_frame.grid_columnconfigure((0, 1, 2), weight=1)
+
+        # Mail header & method selection
+        mail_header_frame = ctk.CTkFrame(self.mail_frame, fg_color="transparent")
+        mail_header_frame.grid(row=0, column=0, columnspan=3, padx=10, pady=(5, 2), sticky="ew")
+        
+        ctk.CTkLabel(
+            mail_header_frame,
+            text="✉️ Send Test Email with Acquired OAuth2 Token:",
+            font=("Roboto", 12, "bold")
+        ).pack(side="left")
+
+        self.mail_method_var = ctk.StringVar(value="graph")
+        self.mail_method_menu = ctk.CTkOptionMenu(
+            mail_header_frame,
+            values=["Microsoft Graph sendMail (Mail.Send)", "Exchange SMTP XOAUTH2 (Port 587)"],
+            command=self.on_mail_method_change,
+            width=260
+        )
+        self.mail_method_menu.pack(side="right")
+
+        # Mail Inputs
+        self.mail_from_entry = self.create_input(
+            self.mail_frame,
+            "From (Sender Mailbox / User)",
+            os.getenv("DEFAULT_SENDER", os.getenv("SMTP_USERNAME", "")),
+            1, 0
+        )
+        self.mail_to_entry = self.create_input(
+            self.mail_frame,
+            "To (Recipient)",
+            "",
+            1, 1
+        )
+        self.mail_subject_entry = self.create_input(
+            self.mail_frame,
+            "Subject",
+            "OAuth2 Enterprise App Test Email",
+            1, 2
+        )
+
+        # Send Button
+        self.btn_send_mail = ctk.CTkButton(
+            self.mail_frame,
+            text="📤 Send Test Email",
+            command=self.start_send_mail_thread,
+            fg_color="#107c41",
+            hover_color="#0b5a2f",
+            height=32,
+            font=("Roboto", 12, "bold"),
+            state="disabled"
+        )
+        self.btn_send_mail.grid(row=2, column=2, padx=10, pady=(0, 8), sticky="e")
+
         # Log Console
         self.log_console = ctk.CTkTextbox(self, state="disabled", font=("Consolas", 12))
-        self.log_console.grid(row=5, column=0, padx=20, pady=(5, 20), sticky="nsew")
+        self.log_console.grid(row=6, column=0, padx=20, pady=(5, 20), sticky="nsew")
 
     def create_input(self, parent, label_text, default_val, row, col, show=None):
         frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -175,6 +238,12 @@ class OAuthTesterView(ctk.CTkFrame):
         elif "Azure Management" in choice:
             self.scope_entry.delete(0, "end")
             self.scope_entry.insert(0, "https://management.azure.com/.default")
+
+    def on_mail_method_change(self, choice):
+        if "Microsoft Graph" in choice:
+            self.mail_method_var.set("graph")
+        else:
+            self.mail_method_var.set("smtp_oauth2")
 
     def log(self, message):
         self.log_console.configure(state="normal")
@@ -232,8 +301,10 @@ class OAuthTesterView(ctk.CTkFrame):
 
             self.btn_graph.configure(state="normal")
             self.btn_inspect.configure(state="normal")
+            self.btn_send_mail.configure(state="normal")
         else:
             self.last_access_token = None
+            self.btn_send_mail.configure(state="disabled")
             self.log(f"❌ [FAILED] HTTP {res.get('status_code')} ({res.get('latency_ms', 0)} ms)")
             self.log(f"Error: {res.get('error')}")
             self.log(f"Description: {res.get('error_description')}")
@@ -264,6 +335,58 @@ class OAuthTesterView(ctk.CTkFrame):
                 self.log(f"Details: {json.dumps(res.get('raw_response'), indent=2)}")
         self.log("-" * 60)
         self.btn_graph.configure(state="normal", text="🔍 Test MS Graph API")
+
+    def start_send_mail_thread(self):
+        if not self.last_access_token:
+            self.log("❌ No active access token. Please run 'Test OAuth & Fetch Token' first.")
+            return
+        self.btn_send_mail.configure(state="disabled", text="Sending...")
+        threading.Thread(target=self.run_send_mail, daemon=True).start()
+
+    def run_send_mail(self):
+        from_user = self.mail_from_entry.get().strip()
+        to_email = self.mail_to_entry.get().strip()
+        subject = self.mail_subject_entry.get().strip()
+        method = self.mail_method_var.get()
+        body = (
+            "Hello,\n\n"
+            "This is a test email sent via ER-MailTool using authenticated OAuth 2.0 credentials "
+            "(Microsoft Entra ID Enterprise App Registration).\n\n"
+            "Status: Successful verification."
+        )
+
+        self.log("-" * 60)
+        self.log(f"Sending test email via {method.upper()}...")
+        self.log(f"From: {from_user}")
+        self.log(f"To: {to_email}")
+        self.log(f"Subject: {subject}")
+
+        if method == "graph":
+            res = OAuthTester.send_email_graph(
+                access_token=self.last_access_token,
+                from_user=from_user,
+                to_email=to_email,
+                subject=subject,
+                body=body
+            )
+        else:
+            res = OAuthTester.send_email_smtp_oauth2(
+                access_token=self.last_access_token,
+                from_email=from_user,
+                to_email=to_email,
+                subject=subject,
+                body=body
+            )
+
+        if res.get("success"):
+            self.log(f"✅ {res.get('message')} ({res.get('latency_ms', 0)} ms)")
+        else:
+            self.log(f"❌ Email sending failed (Status {res.get('status_code', 0)}): {res.get('error')}")
+            if "raw_response" in res:
+                self.log(f"Details: {json.dumps(res.get('raw_response'), indent=2)}")
+
+        self.log("-" * 60)
+        self.btn_send_mail.configure(state="normal", text="📤 Send Test Email")
 
     def inspect_current_token(self):
         if not self.last_access_token:

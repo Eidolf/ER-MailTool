@@ -260,3 +260,153 @@ class OAuthTester:
                 "endpoint": endpoint,
                 "error": str(e)
             }
+
+    @staticmethod
+    def send_email_graph(
+        access_token: str,
+        from_user: str,
+        to_email: str,
+        subject: str,
+        body: str,
+        timeout: int = 15
+    ) -> Dict[str, Any]:
+        """
+        Send an email via Microsoft Graph API /v1.0/users/{from_user}/sendMail using the Bearer token.
+        Requires Mail.Send (Application permission) on the Enterprise App.
+        """
+        if not access_token:
+            return {"success": False, "error": "Access token is required"}
+        if not from_user:
+            return {"success": False, "error": "Sender email (from_user) is required"}
+        if not to_email:
+            return {"success": False, "error": "Recipient email (to_email) is required"}
+
+        endpoint = f"https://graph.microsoft.com/v1.0/users/{urllib.parse.quote(from_user)}/sendMail"
+        message_payload = {
+            "message": {
+                "subject": subject,
+                "body": {
+                    "contentType": "Text",
+                    "content": body
+                },
+                "toRecipients": [
+                    {
+                        "emailAddress": {
+                            "address": to_email
+                        }
+                    }
+                ]
+            },
+            "saveToSentItems": "true"
+        }
+
+        data_encoded = json.dumps(message_payload).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            "User-Agent": "ER-MailTool/1.0.0 (Graph-Mailer)"
+        }
+
+        req = urllib.request.Request(endpoint, data=data_encoded, headers=headers, method="POST")  # noqa: S310
+        ssl_ctx = ssl.create_default_context()
+        start_time = time.time()
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout, context=ssl_ctx) as response:  # noqa: S310
+                latency_ms = int((time.time() - start_time) * 1000)
+                status_code = response.getcode()
+                return {
+                    "success": True,
+                    "status_code": status_code,
+                    "latency_ms": latency_ms,
+                    "message": f"Email successfully sent via MS Graph to {to_email} (from {from_user})."
+                }
+        except urllib.error.HTTPError as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            err_body = e.read().decode("utf-8", errors="replace")
+            try:
+                err_json = json.loads(err_body)
+            except Exception:
+                err_json = {"raw": err_body}
+
+            return {
+                "success": False,
+                "status_code": e.code,
+                "latency_ms": latency_ms,
+                "error": err_json.get("error", {}).get("message", str(e)) if isinstance(err_json.get("error"), dict) else str(err_json),
+                "raw_response": err_json
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "status_code": 0,
+                "latency_ms": int((time.time() - start_time) * 1000),
+                "error": str(e)
+            }
+
+    @staticmethod
+    def send_email_smtp_oauth2(
+        access_token: str,
+        from_email: str,
+        to_email: str,
+        subject: str,
+        body: str,
+        server: str = "smtp.office365.com",
+        port: int = 587,
+        timeout: int = 15
+    ) -> Dict[str, Any]:
+        """
+        Send an email via SMTP using OAuth2 XOAUTH2 authentication.
+        Format: user=<user>\x01auth=Bearer <token>\x01\x01
+        """
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        if not access_token:
+            return {"success": False, "error": "Access token is required"}
+        if not from_email or not to_email:
+            return {"success": False, "error": "Sender and recipient emails are required"}
+
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        start_time = time.time()
+        try:
+            with smtplib.SMTP(server, port, timeout=timeout) as smtp:
+                smtp.ehlo()
+                if smtp.has_extn('STARTTLS'):
+                    smtp.starttls()
+                    smtp.ehlo()
+
+                # Generate XOAUTH2 SASL string
+                auth_str = f"user={from_email}\x01auth=Bearer {access_token}\x01\x01"
+                auth_b64 = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
+
+                # AUTH XOAUTH2 command
+                code, resp = smtp.docmd("AUTH", f"XOAUTH2 {auth_b64}")
+                if code not in (235, 250):
+                    return {
+                        "success": False,
+                        "status_code": code,
+                        "latency_ms": int((time.time() - start_time) * 1000),
+                        "error": f"SMTP OAuth2 Auth Failed ({code}): {resp.decode('utf-8', errors='replace')}"
+                    }
+
+                smtp.sendmail(from_email, [to_email], msg.as_string())
+                return {
+                    "success": True,
+                    "status_code": 250,
+                    "latency_ms": int((time.time() - start_time) * 1000),
+                    "message": f"Email successfully sent via SMTP XOAUTH2 to {to_email} (from {from_email})."
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "status_code": 0,
+                "latency_ms": int((time.time() - start_time) * 1000),
+                "error": str(e)
+            }

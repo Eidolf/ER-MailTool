@@ -46,7 +46,10 @@ def test_oauth_cmd(
     assertion: Optional[str] = typer.Option(None, help="JWT assertion string (for jwt_bearer or client_assertion flow)"),
     auth_type: str = typer.Option("client_secret", help="Auth type: client_secret | jwt_bearer | client_assertion"),
     scope: str = typer.Option("https://graph.microsoft.com/.default", help="OAuth Scope"),
-    test_graph: bool = typer.Option(False, help="Perform test request against Microsoft Graph API after token acquisition")
+    test_graph: bool = typer.Option(False, help="Perform test request against Microsoft Graph API after token acquisition"),
+    send_to: Optional[str] = typer.Option(None, help="Send a test email to this recipient after token acquisition"),
+    send_from: Optional[str] = typer.Option(os.getenv("DEFAULT_SENDER", None), help="Sender email mailbox address"),
+    send_method: str = typer.Option("graph", help="Email sending method: graph | smtp_oauth2")
 ):
     """
     Test OAuth 2.0 Client Credentials or JWT Bearer Authentication for Enterprise App Registrations.
@@ -86,6 +89,34 @@ def test_oauth_cmd(
                 typer.echo(json.dumps(graph_res.get("data"), indent=2))
             else:
                 typer.secho(f"❌ Microsoft Graph Call Failed (HTTP {graph_res.get('status_code')}): {graph_res.get('error')}", fg=typer.colors.RED)
+
+        if send_to and res.get("access_token"):
+            sender = send_from or os.getenv("DEFAULT_SENDER", os.getenv("SMTP_USERNAME"))
+            if not sender:
+                typer.secho("❌ Sender email (--send-from or DEFAULT_SENDER) is required to send test email.", fg=typer.colors.RED)
+            else:
+                typer.echo(f"\nSending test email via {send_method.upper()} to {send_to} (From: {sender})...")
+                if send_method == "graph":
+                    mail_res = OAuthTester.send_email_graph(
+                        access_token=res["access_token"],
+                        from_user=sender,
+                        to_email=send_to,
+                        subject="ER-MailTool OAuth 2.0 Test Email",
+                        body="Test email sent via Microsoft Graph API using OAuth 2.0 Enterprise App Authentication."
+                    )
+                else:
+                    mail_res = OAuthTester.send_email_smtp_oauth2(
+                        access_token=res["access_token"],
+                        from_email=sender,
+                        to_email=send_to,
+                        subject="ER-MailTool OAuth 2.0 Test Email",
+                        body="Test email sent via SMTP XOAUTH2 using OAuth 2.0 Enterprise App Authentication."
+                    )
+
+                if mail_res.get("success"):
+                    typer.secho(f"✅ {mail_res.get('message')}", fg=typer.colors.GREEN, bold=True)
+                else:
+                    typer.secho(f"❌ Email sending failed: {mail_res.get('error')}", fg=typer.colors.RED)
     else:
         typer.secho("❌ OAuth Authentication Failed!", fg=typer.colors.RED, bold=True)
         typer.echo(f"Status: HTTP {res.get('status_code')} ({res.get('latency_ms', 0)} ms)")

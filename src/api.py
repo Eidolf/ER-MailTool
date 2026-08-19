@@ -41,6 +41,16 @@ class OAuthTestRequest(BaseModel):
 class JWTDecodeRequest(BaseModel):
     token: str
 
+class SendOAuthEmailRequest(BaseModel):
+    access_token: str
+    from_email: EmailStr
+    to_email: EmailStr
+    subject: str
+    body: str
+    method: str = "graph"  # graph | smtp_oauth2
+    smtp_server: str = "smtp.office365.com"
+    smtp_port: int = 587
+
 # --- Rate Limiting ---
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
@@ -191,3 +201,25 @@ async def test_oauth(request: Request, data: OAuthTestRequest):
 @limiter.limit("30/minute")
 async def decode_token_claims(request: Request, data: JWTDecodeRequest):
     return OAuthTester.decode_jwt_unverified(data.token)
+
+@app.post("/oauth/send")
+@limiter.limit("5/minute")
+async def send_oauth_email(request: Request, data: SendOAuthEmailRequest):
+    if data.method == "graph":
+        return OAuthTester.send_email_graph(
+            access_token=data.access_token,
+            from_user=data.from_email,
+            to_email=data.to_email,
+            subject=data.subject,
+            body=data.body
+        )
+    else:
+        return OAuthTester.send_email_smtp_oauth2(
+            access_token=data.access_token,
+            from_email=data.from_email,
+            to_email=data.to_email,
+            subject=data.subject,
+            body=data.body,
+            server=data.smtp_server,
+            port=data.smtp_port
+        )
