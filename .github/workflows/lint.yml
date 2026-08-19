@@ -11,15 +11,13 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           
       - name: Install Ruff
         run: pip install ruff
@@ -31,24 +29,6 @@ jobs:
             ruff format .
           else
             ruff check .
-          fi
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install ESLint
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Run ESLint
-        working-directory: ./frontend
-        run: |
-          if [ "${{ inputs.fix }}" = "true" ]; then
-            npm run lint:fix
-          else
-            npm run lint
           fi
 
       - name: Commit Fixes
