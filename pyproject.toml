@@ -6,7 +6,7 @@ build-backend = "poetry.core.masonry.api"
 name = "er-mailtool"
 version = "1.0.0"
 description = "A portable, secure email testing tool with O365 support."
-authors = ["DevSecOps <dev@example.com>"]
+authors = ["Eidolf <andreas@eidolf.de>"]
 packages = [{include = "src"}]
 
 [tool.poetry.scripts]
@@ -31,6 +31,7 @@ click = "<8.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
+pytest-cov = "^5.0.0"
 ruff = "^0.2.1"
 pyinstaller = "^6.3.0"
 httpx = "^0.26.0"
