@@ -44,7 +44,21 @@ class OAuthHelpWindow(ctk.CTkToplevel):
                 "(höchste Enterprise-Sicherheitsstufe ohne statische Passwörter)."
             ),
             (
-                "2. Wichtige Standard-Endpunkte & URLs",
+                "2. Was ist 'JWT Assertion / Signed Client JWT Token'?",
+                "• Erklärung & Einsatzzweck:\n"
+                "  In manchen Enterprise-Architekturen ist die Verwendung eines einfachen Text-Passworts (Client Secret) aus Sicherheitsgründen "
+                "  untersagt oder es existiert eine Verbund-Identität (Federation / OBO).\n\n"
+                "• Wie funktioniert es?\n"
+                "  - Bei 'client_assertion': Das Zielsystem erstellt lokal ein kleines JWT mit Claims wie 'iss' (Client-ID), 'sub' (Client-ID), "
+                "'aud' (Token-URL) und signiert es mit dem privaten Zertifikatsschlüssel (X.509 / RSA). Azure prüft die Signatur gegen das in "
+                "der App-Registrierung hinterlegte Zertifikat.\n"
+                "  - Bei 'jwt_bearer': Ein Benutzer- oder IdP-Token wird 1:1 als 'assertion' übergeben, um Berechtigungen für eine nachgelagerte API zu tauschen.\n\n"
+                "• Standardwert im Tool:\n"
+                "  Wenn du normales 'client_secret' nutzt, wird dieses Feld nicht benötigt und bleibt ignoriert. Das Textfeld dient dazu, "
+                "  ein solches signiertes JWT direkt einzufügen und den Token-Abruf zu testen."
+            ),
+            (
+                "3. Wichtige Standard-Endpunkte & URLs",
                 "• Token Endpoint URL:\n"
                 "  - Microsoft Entra ID (Azure AD): https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token\n"
                 "  - Wenn im Feld 'Tenant ID' nur eine ID / Domain eingegeben wird, baut das Tool die URL automatisch zusammen.\n"
@@ -59,7 +73,7 @@ class OAuthHelpWindow(ctk.CTkToplevel):
                 "  - Auth-Methode: XOAUTH2 (SASL-Format: user=mailbox@domain.com\\x01auth=Bearer <token>\\x01\\x01)"
             ),
             (
-                "3. Enterprise App Rollen vs. Delegierte Berechtigungen",
+                "4. Enterprise App Rollen vs. Delegierte Berechtigungen",
                 "• 'roles' (Application Permissions):\n"
                 "  Wird vergeben, wenn eine App ohne interaktiven Benutzer E-Mails versenden darf (z. B. 'Mail.Send' oder 'SMTP.SendAsApp').\n"
                 "  Wird im Token unter dem Claim 'roles': ['Mail.Send'] zurückgegeben.\n\n"
@@ -67,7 +81,7 @@ class OAuthHelpWindow(ctk.CTkToplevel):
                 "  Wird vergeben, wenn sich ein Benutzer persönlich anmeldet und die App in seinem Namen handelt."
             ),
             (
-                "4. Test E-Mail Versandmethoden",
+                "5. Test E-Mail Versandmethoden",
                 "• Microsoft Graph API sendMail:\n"
                 "  Nutzt den REST-Endpunkt /v1.0/users/{mailbox}/sendMail. Erfordert 'Mail.Send' Application Permission im Tenant.\n\n"
                 "• Exchange SMTP XOAUTH2:\n"
@@ -203,6 +217,9 @@ class OAuthTesterView(ctk.CTkFrame):
         self.assertion_box = ctk.CTkTextbox(self.assertion_frame, height=70, font=("Consolas", 11))
         self.assertion_box.grid(row=1, column=0, padx=10, pady=(0, 8), sticky="ew")
         self.assertion_box.insert("0.0", "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...")
+
+        # Hide assertion box by default when client_secret is active
+        self.assertion_frame.grid_remove()
 
         # Action Buttons
         self.btn_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -363,10 +380,13 @@ class OAuthTesterView(ctk.CTkFrame):
     def on_auth_type_change(self, choice):
         if "client_secret" in choice:
             self.auth_type_var.set("client_secret")
+            self.assertion_frame.grid_remove()
         elif "jwt_bearer" in choice:
             self.auth_type_var.set("jwt_bearer")
+            self.assertion_frame.grid()
         elif "client_assertion" in choice:
             self.auth_type_var.set("client_assertion")
+            self.assertion_frame.grid()
 
     def on_preset_change(self, choice):
         if "Microsoft Graph" in choice:
@@ -383,9 +403,12 @@ class OAuthTesterView(ctk.CTkFrame):
             self.custom_smtp_host_entry.insert(0, "smtp.office365.com")
             self.custom_smtp_port_entry.delete(0, "end")
             self.custom_smtp_port_entry.insert(0, "587")
+            self.custom_smtp_tls_var.set("STARTTLS (Port 587)")
         elif "Azure Management" in choice:
             self.scope_entry.delete(0, "end")
             self.scope_entry.insert(0, "https://management.azure.com/.default")
+            self.mail_method_menu.set("Microsoft Graph sendMail (Mail.Send)")
+            self.on_mail_method_change("Microsoft Graph sendMail (Mail.Send)")
         elif "Custom Scope" in choice:
             self.mail_method_menu.set("Custom / Exchange SMTP XOAUTH2")
             self.on_mail_method_change("Custom / Exchange SMTP XOAUTH2")
