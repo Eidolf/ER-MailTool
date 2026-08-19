@@ -46,19 +46,19 @@ Key API Endpoints:
 - `POST /send`: Send email via authenticated SMTP.
 - `GET /mx/{domain}`, `GET /spf/{domain}`, `GET /dmarc/{domain}`, `GET /dkim/{domain}/{selector}`: DNS & Auth records.
 
-### Linux Server (Headless)
+### Linux Server (Headless / Testing Environment)
 
-If you are running on a Linux Testserver without a GUI, use the CLI or API mode:
+If you are running on a test server without a graphical desktop (GUI), run in CLI or API daemon mode without requiring X11 / Tkinter:
 
 ```bash
-# Install dependencies
-pip install .
+# 1. Install dependencies via poetry
+poetry install
 
-# Start the API server
-er-mailtool serve --host 0.0.0.0 --port 8000
+# 2. Start the API server on all interfaces
+poetry run er-mailtool serve --host 0.0.0.0 --port 8000
 
-# Or run a specific CLI command
-er-mailtool send --to user@example.com --subject "Test" --body "Hello"
+# 3. Or run CLI commands directly
+poetry run er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --client-secret "<secret>"
 ```
 
 ### Configuration
@@ -72,20 +72,40 @@ cp .env.example .env
 ## Development
 
 ```bash
-# Install
+# Install dependencies
 poetry install
 
-# Lint
+# Lint & static analysis
 poetry run ruff check .
 
-# Test
+# Run test suite
 poetry run pytest
 ```
 
 ## Build & Release
 
-Builds are managed via GitHub Actions.
-Trigger a "Full" build manually via the Actions tab to generate artifacts.
+### Local Portable Binary Build
+
+To package a standalone executable locally (e.g. for testing before releasing):
+
+```bash
+# Build standalone binary (dist/er-mailtool or dist/er-mailtool.exe)
+poetry run pyinstaller --noconfirm --onefile --windowed --name er-mailtool \
+  --add-data "$(poetry run pip show customtkinter | grep Location | cut -d' ' -f2)/customtkinter:customtkinter/" \
+  --hidden-import=customtkinter \
+  src/main.py
+```
+
+### CI / CD via GitHub Actions
+
+1. **Automated Test Builds & Artifacts**:
+   - Every push to `main` or manual trigger (`Actions` > `CI Orchestrator` with `Full` mode) runs SAST, tests, builds the standalone Linux executable, and generates an SBOM.
+   - Download the pre-built binary under the workflow's **Artifacts** (`er-mailtool-linux`).
+
+2. **Official Version Releases**:
+   - Navigate to `Actions` > `Release` > `Run workflow`.
+   - Select version increment (`patch`, `minor`, or `major`).
+   - GitHub Actions automatically bumps `pyproject.toml`, creates a Git release tag (e.g. `v1.0.1`), and publishes a GitHub Release with auto-generated release notes.
 
 ## License
 
