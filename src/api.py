@@ -1,15 +1,19 @@
+import os
+from typing import Dict, Optional
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from pydantic import BaseModel, EmailStr
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, EmailStr
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.middleware.base import BaseHTTPMiddleware
+
 from .mailer import EmailService
 from .network_tools import NetworkTools
-import os
+from .oauth import OAuthTester
 
 app = FastAPI(title="ER-MailTool API", version="1.0.0")
 
@@ -22,6 +26,20 @@ class EmailRequest(BaseModel):
     port: int = int(os.getenv("SMTP_PORT", 587))
     username: str = os.getenv("SMTP_USERNAME")
     password: str = os.getenv("SMTP_PASSWORD")
+
+class OAuthTestRequest(BaseModel):
+    tenant_or_token_url: str
+    client_id: str
+    auth_type: str = "client_secret" # client_secret | jwt_bearer | client_assertion
+    client_secret: Optional[str] = None
+    assertion: Optional[str] = None
+    scope: str = "https://graph.microsoft.com/.default"
+    resource: Optional[str] = None
+    custom_params: Optional[Dict[str, str]] = None
+    test_graph_api: bool = False
+
+class JWTDecodeRequest(BaseModel):
+    token: str
 
 # --- Rate Limiting ---
 limiter = Limiter(key_func=get_remote_address)
@@ -146,3 +164,30 @@ async def get_whois_info(request: Request, domain: str):
     results = NetworkTools.get_whois(domain)
     # whois returns a dictionary-like object that might need conversion
     return {"domain": domain, "whois_data": str(results)}
+
+# --- OAuth 2.0 & Enterprise App Endpoints ---
+
+@app.post("/oauth/test")
+@limiter.limit("10/minute")
+async def test_oauth(request: Request, data: OAuthTestRequest):
+    res = OAuthTester.test_oauth_auth(
+        tenant_or_token_url=data.tenant_or_token_url,
+        client_id=data.client_id,
+        auth_type=data.auth_type,
+        client_secret=data.client_secret,
+        assertion=data.assertion,
+        scope=data.scope,
+        resource=data.resource,
+        custom_params=data.custom_params
+    )
+
+    if res.get("success") and data.test_graph_api and res.get("access_token"):
+        graph_res = OAuthTester.test_microsoft_graph_api(res["access_token"])
+        res["graph_test"] = graph_res
+
+    return res
+
+@app.post("/oauth/decode")
+@limiter.limit("30/minute")
+async def decode_token_claims(request: Request, data: JWTDecodeRequest):
+    return OAuthTester.decode_jwt_unverified(data.token)

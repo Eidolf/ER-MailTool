@@ -1,8 +1,9 @@
-import customtkinter as ctk
-import threading
 import smtplib
+import threading
 from email.mime.text import MIMEText
-from src.mailer import EmailService # Reusing logging logic if possible, or implementing simple send
+
+import customtkinter as ctk
+
 
 class AnonymousSMTPTester(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):

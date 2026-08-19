@@ -1,6 +1,9 @@
-import customtkinter as ctk
 import threading
+
+import customtkinter as ctk
+
 from src.network_tools import NetworkTools
+
 
 class PortScanner(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
@@ -51,8 +54,6 @@ class PortScanner(ctk.CTkFrame):
             for port in sorted(results.keys()):
                 service, is_open = results[port]
                 status = "OPEN" if is_open else "CLOSED"
-                color = "green" if is_open else "red" # (Console doesn't support color tags easily, sticking to text)
-                
                 line = f"{port:<10} {service:<15} {status:<10}\n"
                 self.result_box.insert("end", line)
                 

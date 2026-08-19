@@ -1,7 +1,8 @@
-from typer.testing import CliRunner
 from fastapi.testclient import TestClient
-from src.cli import app
+from typer.testing import CliRunner
+
 from src.api import app as api_app
+from src.cli import app
 
 runner = CliRunner()
 client = TestClient(api_app)

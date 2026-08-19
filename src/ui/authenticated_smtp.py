@@ -1,7 +1,10 @@
-import customtkinter as ctk
-import threading
 import os
+import threading
+
+import customtkinter as ctk
+
 from src.mailer import EmailService
+
 
 class AuthenticatedSMTPTester(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
@@ -94,7 +97,7 @@ class AuthenticatedSMTPTester(ctk.CTkFrame):
             self.log("-" * 40)
             service.send_email(to_addr, subject, body, callback=self.log)
             self.log("-" * 40)
-        except Exception as e:
-            pass # Error is already logged in callback
+        except Exception:  # noqa: S110
+            pass  # Error is already logged via EmailService callback
         finally:
             self.send_button.configure(state="normal", text="Send Email")

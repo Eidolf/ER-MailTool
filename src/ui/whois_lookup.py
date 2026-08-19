@@ -1,6 +1,9 @@
-import customtkinter as ctk
 import threading
+
+import customtkinter as ctk
+
 from src.network_tools import NetworkTools
+
 
 class WhoisLookup(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):

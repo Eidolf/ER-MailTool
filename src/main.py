@@ -1,4 +1,6 @@
 import sys
+
+
 def main():
     # If arguments are passed (other than script name), run CLI
     if len(sys.argv) > 1:

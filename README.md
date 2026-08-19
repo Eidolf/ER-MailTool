@@ -19,6 +19,15 @@ Primarily built to test authenticated SMTP sending (Office 365, etc.) with stric
 ```bash
 # Send a test email
 er-mailtool send --to user@example.com --subject "Test" --body "Hello"
+
+# Test OAuth 2.0 Client Credentials flow (Microsoft Entra ID / Azure AD)
+er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --client-secret "<secret>" --test-graph
+
+# Test OAuth 2.0 JWT Bearer / Client Assertion flow
+er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --assertion "<jwt>" --auth-type jwt_bearer
+
+# Inspect JWT claims without signature verification
+er-mailtool inspect-jwt "<jwt-token>"
 ```
 
 ### API
@@ -30,6 +39,12 @@ er-mailtool serve
 ```
 
 Access Swagger Docs at `http://localhost:8000/docs`.
+
+Key API Endpoints:
+- `POST /oauth/test`: Test OAuth 2.0 Client Credentials or JWT Bearer Assertion flow & validate permissions.
+- `POST /oauth/decode`: Decode unverified JWT claims, roles, appid, expiration & audience.
+- `POST /send`: Send email via authenticated SMTP.
+- `GET /mx/{domain}`, `GET /spf/{domain}`, `GET /dmarc/{domain}`, `GET /dkim/{domain}/{selector}`: DNS & Auth records.
 
 ### Linux Server (Headless)
 

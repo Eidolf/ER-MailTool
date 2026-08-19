@@ -1,6 +1,9 @@
-import customtkinter as ctk
 import threading
+
+import customtkinter as ctk
+
 from src.network_tools import NetworkTools
+
 
 class BlacklistCheck(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
@@ -52,8 +55,8 @@ class BlacklistCheck(ctk.CTkFrame):
             else:
                 for rbl, listed in results.items():
                     status = "LISTED" if listed else "OK"
-                    # status = "ERROR" if listed is None else status
-                    if listed is None: status = "TIMEOUT"
+                    if listed is None:
+                        status = "TIMEOUT"
                     
                     self.result_box.insert("end", f"{rbl:<30} {status:<10}\n")
                 

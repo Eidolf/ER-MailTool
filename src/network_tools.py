@@ -1,7 +1,9 @@
-import dns.resolver
 import socket
-import whois
 from concurrent.futures import ThreadPoolExecutor
+
+import dns.resolver
+import whois
+
 
 class NetworkTools:
     @staticmethod
