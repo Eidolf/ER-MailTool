@@ -7,19 +7,119 @@ import customtkinter as ctk
 from src.oauth import OAuthTester
 
 
+class OAuthHelpWindow(ctk.CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title("OAuth 2.0 & Enterprise App Guide & Reference")
+        self.geometry("750x650")
+        self.attributes("-topmost", True)
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        # Header
+        header = ctk.CTkLabel(
+            self,
+            text="📖 OAuth 2.0 Concepts, Standards & Field Mappings",
+            font=("Roboto", 18, "bold")
+        )
+        header.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
+
+        # Scrollable Content
+        scroll_box = ctk.CTkScrollableFrame(self)
+        scroll_box.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+        scroll_box.grid_columnconfigure(0, weight=1)
+
+        help_sections = [
+            (
+                "1. Authentication Types (Flows & Standards)",
+                "• client_secret (OAuth 2.0 Client Credentials Grant - RFC 6749 Section 4.4):\n"
+                "  Standard Flow für Machine-to-Machine / Daemon-Dienste (z. B. Enterprise App Registrierungen).\n"
+                "  Verwendet die App-ID (Client ID) und das geheime Passwort (Client Secret).\n\n"
+                "• jwt_bearer (RFC 7523 JWT Bearer Assertion Grant):\n"
+                "  Erlaubt die Vorlage eines vorhandenen JWT-Tokens (Assertion) beim Token-Endpunkt, um ein Access Token zu erhalten "
+                "(z. B. On-Behalf-Of Flow / SAML-to-JWT Federation).\n\n"
+                "• client_assertion (RFC 7523 Client Credentials mit Zertifikat):\n"
+                "  Statt eines statischen Client Secrets signiert der Dienst ein JWT mit einem privaten RSA-Schlüssel/Zertifikat "
+                "(höchste Enterprise-Sicherheitsstufe ohne statische Passwörter)."
+            ),
+            (
+                "2. Wichtige Standard-Endpunkte & URLs",
+                "• Token Endpoint URL:\n"
+                "  - Microsoft Entra ID (Azure AD): https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token\n"
+                "  - Wenn im Feld 'Tenant ID' nur eine ID / Domain eingegeben wird, baut das Tool die URL automatisch zusammen.\n"
+                "  - Benutzerdefinierte OAuth2-Server (Keycloak, Okta, Ping): Vollständige Token-URL direkt in das Feld eintragen.\n\n"
+                "• Scopes & Permissions:\n"
+                "  - Microsoft Graph (.default): https://graph.microsoft.com/.default\n"
+                "  - Exchange SMTP / IMAP OAuth2: https://outlook.office365.com/.default\n"
+                "  - Azure Management: https://management.azure.com/.default\n\n"
+                "• SMTP Server & Port für OAuth2:\n"
+                "  - Server: smtp.office365.com\n"
+                "  - Port: 587 (STARTTLS)\n"
+                "  - Auth-Methode: XOAUTH2 (SASL-Format: user=mailbox@domain.com\\x01auth=Bearer <token>\\x01\\x01)"
+            ),
+            (
+                "3. Enterprise App Rollen vs. Delegierte Berechtigungen",
+                "• 'roles' (Application Permissions):\n"
+                "  Wird vergeben, wenn eine App ohne interaktiven Benutzer E-Mails versenden darf (z. B. 'Mail.Send' oder 'SMTP.SendAsApp').\n"
+                "  Wird im Token unter dem Claim 'roles': ['Mail.Send'] zurückgegeben.\n\n"
+                "• 'scp' (Delegated Scopes):\n"
+                "  Wird vergeben, wenn sich ein Benutzer persönlich anmeldet und die App in seinem Namen handelt."
+            ),
+            (
+                "4. Test E-Mail Versandmethoden",
+                "• Microsoft Graph API sendMail:\n"
+                "  Nutzt den REST-Endpunkt /v1.0/users/{mailbox}/sendMail. Erfordert 'Mail.Send' Application Permission im Tenant.\n\n"
+                "• Exchange SMTP XOAUTH2:\n"
+                "  Nutzt den SMTP-Port 587 mit modernem OAuth2-Handshake. Erfordert die Microsoft 365 Exchange-Berechtigung 'SMTP.SendAsApp'."
+            )
+        ]
+
+        for i, (title, content) in enumerate(help_sections):
+            frame = ctk.CTkFrame(scroll_box, fg_color="gray20", corner_radius=6)
+            frame.grid(row=i, column=0, padx=5, pady=8, sticky="ew")
+            frame.grid_columnconfigure(0, weight=1)
+
+            t_lbl = ctk.CTkLabel(frame, text=title, font=("Roboto", 13, "bold"), text_color="#3399ff", anchor="w")
+            t_lbl.grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
+
+            c_lbl = ctk.CTkLabel(frame, text=content, font=("Consolas", 11), justify="left", anchor="w")
+            c_lbl.grid(row=1, column=0, padx=12, pady=(0, 10), sticky="w")
+
+        # Close Button
+        btn_close = ctk.CTkButton(self, text="Schließen", command=self.destroy, width=120)
+        btn_close.grid(row=2, column=0, padx=20, pady=(0, 15), sticky="e")
+
+
 class OAuthTesterView(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
 
         self.last_access_token = None
+        self.help_window = None
 
         # Layout
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(5, weight=1)
+        self.grid_rowconfigure(6, weight=1)
 
-        # Header
-        self.header = ctk.CTkLabel(self, text="OAuth 2.0 & Enterprise App Tester", font=("Roboto", 20, "bold"))
-        self.header.grid(row=0, column=0, padx=20, pady=(20, 5), sticky="w")
+        # Header Frame with Help Button
+        header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        header_frame.grid(row=0, column=0, padx=20, pady=(20, 5), sticky="ew")
+        header_frame.grid_columnconfigure(0, weight=1)
+
+        self.header = ctk.CTkLabel(header_frame, text="OAuth 2.0 & Enterprise App Tester", font=("Roboto", 20, "bold"))
+        self.header.grid(row=0, column=0, sticky="w")
+
+        self.btn_help = ctk.CTkButton(
+            header_frame,
+            text="❓ Hilfe & Erklärung",
+            command=self.open_help_window,
+            fg_color="#495057",
+            hover_color="#343a40",
+            width=150,
+            height=30
+        )
+        self.btn_help.grid(row=0, column=1, sticky="e")
 
         self.sub_header = ctk.CTkLabel(
             self,
@@ -39,16 +139,20 @@ class OAuthTesterView(ctk.CTkFrame):
         type_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
         type_frame.grid_columnconfigure((0, 1), weight=1)
 
-        ctk.CTkLabel(type_frame, text="Authentication Type:").grid(row=0, column=0, padx=5, pady=2, sticky="w")
+        ctk.CTkLabel(type_frame, text="Authentication Type (Grant Flow):").grid(row=0, column=0, padx=5, pady=2, sticky="w")
         self.auth_type_var = ctk.StringVar(value="client_secret")
         self.auth_type_menu = ctk.CTkOptionMenu(
             type_frame,
-            values=["client_secret (Client Credentials)", "jwt_bearer (RFC 7523 Assertion)", "client_assertion (Private Key / Cert JWT)"],
+            values=[
+                "client_secret (OAuth 2.0 Client Credentials)",
+                "jwt_bearer (RFC 7523 Assertion Flow)",
+                "client_assertion (Private Key / Cert JWT)"
+            ],
             command=self.on_auth_type_change
         )
         self.auth_type_menu.grid(row=1, column=0, padx=5, pady=2, sticky="ew")
 
-        ctk.CTkLabel(type_frame, text="Preset / Target Scope:").grid(row=0, column=1, padx=5, pady=2, sticky="w")
+        ctk.CTkLabel(type_frame, text="Target Scope / Resource Preset:").grid(row=0, column=1, padx=5, pady=2, sticky="w")
         self.preset_menu = ctk.CTkOptionMenu(
             type_frame,
             values=[
@@ -64,26 +168,26 @@ class OAuthTesterView(ctk.CTkFrame):
         # Inputs
         self.tenant_entry = self.create_input(
             self.config_frame,
-            "Tenant ID / Domain / Custom Token URL",
+            "Tenant ID / Domain (or Full Token URL)",
             os.getenv("AZURE_TENANT_ID", "common"),
             1, 0
         )
         self.client_id_entry = self.create_input(
             self.config_frame,
-            "Client ID (App / Registration ID)",
+            "Client ID (Application Registration ID)",
             os.getenv("AZURE_CLIENT_ID", ""),
             1, 1
         )
         self.secret_entry = self.create_input(
             self.config_frame,
-            "Client Secret / Password",
+            "Client Secret (Password / Value)",
             os.getenv("AZURE_CLIENT_SECRET", ""),
             2, 0,
             show="*"
         )
         self.scope_entry = self.create_input(
             self.config_frame,
-            "Scope (e.g. https://graph.microsoft.com/.default)",
+            "Scope (default: https://graph.microsoft.com/.default)",
             "https://graph.microsoft.com/.default",
             2, 1
         )
@@ -110,7 +214,7 @@ class OAuthTesterView(ctk.CTkFrame):
             command=self.start_test_thread,
             fg_color="#007acc",
             hover_color="#005999",
-            width=220,
+            width=230,
             height=36,
             font=("Roboto", 13, "bold")
         )
@@ -149,15 +253,14 @@ class OAuthTesterView(ctk.CTkFrame):
         )
         self.btn_clear.pack(side="right")
 
-        # Send Test Email via OAuth (Graph / SMTP XOAUTH2) Frame
+        # Send Test Email via OAuth Frame
         self.mail_frame = ctk.CTkFrame(self)
         self.mail_frame.grid(row=5, column=0, padx=20, pady=5, sticky="ew")
         self.mail_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-        # Mail header & method selection
         mail_header_frame = ctk.CTkFrame(self.mail_frame, fg_color="transparent")
         mail_header_frame.grid(row=0, column=0, columnspan=3, padx=10, pady=(5, 2), sticky="ew")
-        
+
         ctk.CTkLabel(
             mail_header_frame,
             text="✉️ Send Test Email with Acquired OAuth2 Token:",
@@ -210,6 +313,12 @@ class OAuthTesterView(ctk.CTkFrame):
         self.log_console = ctk.CTkTextbox(self, state="disabled", font=("Consolas", 12))
         self.log_console.grid(row=6, column=0, padx=20, pady=(5, 20), sticky="nsew")
 
+    def open_help_window(self):
+        if self.help_window is None or not self.help_window.winfo_exists():
+            self.help_window = OAuthHelpWindow(self)
+        else:
+            self.help_window.focus()
+
     def create_input(self, parent, label_text, default_val, row, col, show=None):
         frame = ctk.CTkFrame(parent, fg_color="transparent")
         frame.grid(row=row, column=col, padx=10, pady=5, sticky="ew")
@@ -246,10 +355,16 @@ class OAuthTesterView(ctk.CTkFrame):
             self.mail_method_var.set("smtp_oauth2")
 
     def log(self, message):
-        self.log_console.configure(state="normal")
-        self.log_console.insert("end", message + "\n")
-        self.log_console.see("end")
-        self.log_console.configure(state="disabled")
+        """Thread-safe UI log update using Tkinter after callback."""
+        def _append():
+            try:
+                self.log_console.configure(state="normal")
+                self.log_console.insert("end", message + "\n")
+                self.log_console.see("end")
+                self.log_console.configure(state="disabled")
+            except Exception:  # noqa: S110
+                pass
+        self.after(0, _append)
 
     def clear_logs(self):
         self.log_console.configure(state="normal")
@@ -284,35 +399,38 @@ class OAuthTesterView(ctk.CTkFrame):
             scope=scope
         )
 
-        if res.get("success"):
-            self.last_access_token = res.get("access_token")
-            self.log(f"✅ [SUCCESS] Token Acquired! (HTTP {res.get('status_code')}, {res.get('latency_ms')} ms)")
-            self.log(f"Token Type: {res.get('token_type')}")
-            self.log(f"Expires In: {res.get('expires_in')}s")
-            
-            claims = res.get("claims")
-            if claims and "payload" in claims:
-                payload = claims["payload"]
-                self.log(f"App ID (appid): {payload.get('appid', payload.get('azp', 'N/A'))}")
-                self.log(f"Tenant (tid): {payload.get('tid', 'N/A')}")
-                self.log(f"Audience (aud): {payload.get('aud', 'N/A')}")
-                self.log(f"Roles / App Permissions: {payload.get('roles', 'None')}")
-                self.log(f"Scopes: {payload.get('scp', res.get('scope_granted', 'N/A'))}")
+        def _update_ui():
+            if res.get("success"):
+                self.last_access_token = res.get("access_token")
+                self.log(f"✅ [SUCCESS] Token Acquired! (HTTP {res.get('status_code')}, {res.get('latency_ms')} ms)")
+                self.log(f"Token Type: {res.get('token_type')}")
+                self.log(f"Expires In: {res.get('expires_in')}s")
 
-            self.btn_graph.configure(state="normal")
-            self.btn_inspect.configure(state="normal")
-            self.btn_send_mail.configure(state="normal")
-        else:
-            self.last_access_token = None
-            self.btn_send_mail.configure(state="disabled")
-            self.log(f"❌ [FAILED] HTTP {res.get('status_code')} ({res.get('latency_ms', 0)} ms)")
-            self.log(f"Error: {res.get('error')}")
-            self.log(f"Description: {res.get('error_description')}")
-            if "raw_response" in res:
-                self.log(f"Raw Response: {json.dumps(res['raw_response'], indent=2)}")
+                claims = res.get("claims")
+                if claims and "payload" in claims:
+                    payload = claims["payload"]
+                    self.log(f"App ID (appid): {payload.get('appid', payload.get('azp', 'N/A'))}")
+                    self.log(f"Tenant (tid): {payload.get('tid', 'N/A')}")
+                    self.log(f"Audience (aud): {payload.get('aud', 'N/A')}")
+                    self.log(f"Roles / App Permissions: {payload.get('roles', 'None')}")
+                    self.log(f"Scopes: {payload.get('scp', res.get('scope_granted', 'N/A'))}")
 
-        self.log("=" * 60)
-        self.btn_test.configure(state="normal", text="🚀 Test OAuth & Fetch Token")
+                self.btn_graph.configure(state="normal")
+                self.btn_inspect.configure(state="normal")
+                self.btn_send_mail.configure(state="normal")
+            else:
+                self.last_access_token = None
+                self.btn_send_mail.configure(state="disabled")
+                self.log(f"❌ [FAILED] HTTP {res.get('status_code')} ({res.get('latency_ms', 0)} ms)")
+                self.log(f"Error: {res.get('error')}")
+                self.log(f"Description: {res.get('error_description')}")
+                if "raw_response" in res:
+                    self.log(f"Raw Response: {json.dumps(res['raw_response'], indent=2)}")
+
+            self.log("=" * 60)
+            self.btn_test.configure(state="normal", text="🚀 Test OAuth & Fetch Token")
+
+        self.after(0, _update_ui)
 
     def start_graph_thread(self):
         if not self.last_access_token:
@@ -325,16 +443,20 @@ class OAuthTesterView(ctk.CTkFrame):
         self.log("-" * 60)
         self.log("Testing token against Microsoft Graph API (/v1.0/organization)...")
         res = OAuthTester.test_microsoft_graph_api(self.last_access_token)
-        if res.get("success"):
-            self.log(f"✅ Microsoft Graph API Call Succeeded (HTTP {res.get('status_code')})")
-            self.log(f"Organization Data: {json.dumps(res.get('data'), indent=2)}")
-        else:
-            self.log(f"❌ Microsoft Graph Call Failed (HTTP {res.get('status_code')})")
-            self.log(f"Error: {res.get('error')}")
-            if "raw_response" in res:
-                self.log(f"Details: {json.dumps(res.get('raw_response'), indent=2)}")
-        self.log("-" * 60)
-        self.btn_graph.configure(state="normal", text="🔍 Test MS Graph API")
+
+        def _update_ui():
+            if res.get("success"):
+                self.log(f"✅ Microsoft Graph API Call Succeeded (HTTP {res.get('status_code')})")
+                self.log(f"Organization Data: {json.dumps(res.get('data'), indent=2)}")
+            else:
+                self.log(f"❌ Microsoft Graph Call Failed (HTTP {res.get('status_code')})")
+                self.log(f"Error: {res.get('error')}")
+                if "raw_response" in res:
+                    self.log(f"Details: {json.dumps(res.get('raw_response'), indent=2)}")
+            self.log("-" * 60)
+            self.btn_graph.configure(state="normal", text="🔍 Test MS Graph API")
+
+        self.after(0, _update_ui)
 
     def start_send_mail_thread(self):
         if not self.last_access_token:
@@ -378,15 +500,18 @@ class OAuthTesterView(ctk.CTkFrame):
                 body=body
             )
 
-        if res.get("success"):
-            self.log(f"✅ {res.get('message')} ({res.get('latency_ms', 0)} ms)")
-        else:
-            self.log(f"❌ Email sending failed (Status {res.get('status_code', 0)}): {res.get('error')}")
-            if "raw_response" in res:
-                self.log(f"Details: {json.dumps(res.get('raw_response'), indent=2)}")
+        def _update_ui():
+            if res.get("success"):
+                self.log(f"✅ {res.get('message')} ({res.get('latency_ms', 0)} ms)")
+            else:
+                self.log(f"❌ Email sending failed (Status {res.get('status_code', 0)}): {res.get('error')}")
+                if "raw_response" in res:
+                    self.log(f"Details: {json.dumps(res.get('raw_response'), indent=2)}")
 
-        self.log("-" * 60)
-        self.btn_send_mail.configure(state="normal", text="📤 Send Test Email")
+            self.log("-" * 60)
+            self.btn_send_mail.configure(state="normal", text="📤 Send Test Email")
+
+        self.after(0, _update_ui)
 
     def inspect_current_token(self):
         if not self.last_access_token:
@@ -397,3 +522,4 @@ class OAuthTesterView(ctk.CTkFrame):
         self.log("JWT Claims Inspector:")
         self.log(json.dumps(claims, indent=2))
         self.log("-" * 60)
+
