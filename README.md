@@ -24,6 +24,9 @@ poetry run er-mailtool
 ```
 *(Or double-click the compiled binary `er-mailtool` / `er-mailtool.exe` without CLI arguments.)*
 
+> [!NOTE]
+> **Linux GUI Prerequisite**: Linux distributions require the OS-level Tkinter package (`sudo apt install python3-tk` on Debian/Ubuntu, `sudo dnf install python3-tkinter` on Fedora).
+
 ---
 
 ### 2. API Server (Headless / Testing Environment)
