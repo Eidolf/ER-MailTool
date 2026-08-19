@@ -270,30 +270,61 @@ class OAuthTesterView(ctk.CTkFrame):
         self.mail_method_var = ctk.StringVar(value="graph")
         self.mail_method_menu = ctk.CTkOptionMenu(
             mail_header_frame,
-            values=["Microsoft Graph sendMail (Mail.Send)", "Exchange SMTP XOAUTH2 (Port 587)"],
+            values=["Microsoft Graph sendMail (Mail.Send)", "Custom / Exchange SMTP XOAUTH2"],
             command=self.on_mail_method_change,
             width=260
         )
         self.mail_method_menu.pack(side="right")
+
+        # Custom SMTP Server Configuration (shown when SMTP XOAUTH2 is selected or custom preset)
+        self.custom_smtp_frame = ctk.CTkFrame(self.mail_frame, fg_color="gray18", corner_radius=6)
+        self.custom_smtp_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
+        self.custom_smtp_frame.grid_columnconfigure((0, 1, 2), weight=1)
+
+        self.custom_smtp_host_entry = self.create_input(
+            self.custom_smtp_frame,
+            "SMTP Server Host",
+            os.getenv("SMTP_SERVER", "smtp.office365.com"),
+            0, 0
+        )
+        self.custom_smtp_port_entry = self.create_input(
+            self.custom_smtp_frame,
+            "Port (e.g. 587 or 465)",
+            str(os.getenv("SMTP_PORT", "587")),
+            0, 1
+        )
+        self.custom_smtp_tls_var = ctk.StringVar(value="STARTTLS")
+        tls_frame = ctk.CTkFrame(self.custom_smtp_frame, fg_color="transparent")
+        tls_frame.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
+        ctk.CTkLabel(tls_frame, text="Encryption / Security").pack(anchor="w")
+        self.custom_smtp_tls_menu = ctk.CTkOptionMenu(
+            tls_frame,
+            values=["STARTTLS (Port 587)", "SSL/TLS (Port 465)", "Plain (None)"],
+            variable=self.custom_smtp_tls_var
+        )
+        self.custom_smtp_tls_menu.pack(fill="x")
+
+        # Hide custom SMTP frame by default (since Graph is default)
+        self.custom_smtp_frame.grid_remove()
 
         # Mail Inputs
         self.mail_from_entry = self.create_input(
             self.mail_frame,
             "From (Sender Mailbox / User)",
             os.getenv("DEFAULT_SENDER", os.getenv("SMTP_USERNAME", "")),
-            1, 0
+            2, 0
         )
         self.mail_to_entry = self.create_input(
             self.mail_frame,
             "To (Recipient)",
             "",
-            1, 1
+            2, 1
         )
         self.mail_subject_entry = self.create_input(
             self.mail_frame,
             "Subject",
             "OAuth2 Enterprise App Test Email",
-            1, 2
+            2, 2
         )
 
         # Send Button
@@ -307,7 +338,7 @@ class OAuthTesterView(ctk.CTkFrame):
             font=("Roboto", 12, "bold"),
             state="disabled"
         )
-        self.btn_send_mail.grid(row=2, column=2, padx=10, pady=(0, 8), sticky="e")
+        self.btn_send_mail.grid(row=3, column=2, padx=10, pady=(0, 8), sticky="e")
 
         # Log Console
         self.log_console = ctk.CTkTextbox(self, state="disabled", font=("Consolas", 12))
@@ -341,18 +372,31 @@ class OAuthTesterView(ctk.CTkFrame):
         if "Microsoft Graph" in choice:
             self.scope_entry.delete(0, "end")
             self.scope_entry.insert(0, "https://graph.microsoft.com/.default")
+            self.mail_method_menu.set("Microsoft Graph sendMail (Mail.Send)")
+            self.on_mail_method_change("Microsoft Graph sendMail (Mail.Send)")
         elif "Exchange SMTP" in choice:
             self.scope_entry.delete(0, "end")
             self.scope_entry.insert(0, "https://outlook.office365.com/.default")
+            self.mail_method_menu.set("Custom / Exchange SMTP XOAUTH2")
+            self.on_mail_method_change("Custom / Exchange SMTP XOAUTH2")
+            self.custom_smtp_host_entry.delete(0, "end")
+            self.custom_smtp_host_entry.insert(0, "smtp.office365.com")
+            self.custom_smtp_port_entry.delete(0, "end")
+            self.custom_smtp_port_entry.insert(0, "587")
         elif "Azure Management" in choice:
             self.scope_entry.delete(0, "end")
             self.scope_entry.insert(0, "https://management.azure.com/.default")
+        elif "Custom Scope" in choice:
+            self.mail_method_menu.set("Custom / Exchange SMTP XOAUTH2")
+            self.on_mail_method_change("Custom / Exchange SMTP XOAUTH2")
 
     def on_mail_method_change(self, choice):
         if "Microsoft Graph" in choice:
             self.mail_method_var.set("graph")
+            self.custom_smtp_frame.grid_remove()
         else:
             self.mail_method_var.set("smtp_oauth2")
+            self.custom_smtp_frame.grid()
 
     def log(self, message):
         """Thread-safe UI log update using Tkinter after callback."""
@@ -492,12 +536,26 @@ class OAuthTesterView(ctk.CTkFrame):
                 body=body
             )
         else:
+            smtp_host = self.custom_smtp_host_entry.get().strip() or "smtp.office365.com"
+            try:
+                smtp_port = int(self.custom_smtp_port_entry.get().strip())
+            except ValueError:
+                smtp_port = 587
+            
+            tls_choice = self.custom_smtp_tls_var.get()
+            use_ssl = "SSL" in tls_choice or smtp_port == 465
+            use_starttls = "STARTTLS" in tls_choice
+
             res = OAuthTester.send_email_smtp_oauth2(
                 access_token=self.last_access_token,
                 from_email=from_user,
                 to_email=to_email,
                 subject=subject,
-                body=body
+                body=body,
+                server=smtp_host,
+                port=smtp_port,
+                use_ssl=use_ssl,
+                use_starttls=use_starttls
             )
 
         def _update_ui():

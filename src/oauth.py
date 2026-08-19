@@ -353,6 +353,8 @@ class OAuthTester:
         body: str,
         server: str = "smtp.office365.com",
         port: int = 587,
+        use_ssl: bool = False,
+        use_starttls: bool = True,
         timeout: int = 15
     ) -> Dict[str, Any]:
         """
@@ -376,9 +378,14 @@ class OAuthTester:
 
         start_time = time.time()
         try:
-            with smtplib.SMTP(server, port, timeout=timeout) as smtp:
+            if use_ssl or port == 465:
+                smtp_client = smtplib.SMTP_SSL(server, port, timeout=timeout)
+            else:
+                smtp_client = smtplib.SMTP(server, port, timeout=timeout)
+
+            with smtp_client as smtp:
                 smtp.ehlo()
-                if smtp.has_extn('STARTTLS'):
+                if not (use_ssl or port == 465) and use_starttls and smtp.has_extn('STARTTLS'):
                     smtp.starttls()
                     smtp.ehlo()
 
