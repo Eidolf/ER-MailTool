@@ -89,20 +89,38 @@ class OAuthHelpWindow(ctk.CTkToplevel):
             )
         ]
 
+        self.labels = []
         for i, (title, content) in enumerate(help_sections):
             frame = ctk.CTkFrame(scroll_box, fg_color="gray20", corner_radius=6)
             frame.grid(row=i, column=0, padx=5, pady=8, sticky="ew")
             frame.grid_columnconfigure(0, weight=1)
 
-            t_lbl = ctk.CTkLabel(frame, text=title, font=("Roboto", 13, "bold"), text_color="#3399ff", anchor="w")
+            t_lbl = ctk.CTkLabel(frame, text=title, font=("Roboto", 13, "bold"), text_color="#3399ff", anchor="w", justify="left")
             t_lbl.grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
 
-            c_lbl = ctk.CTkLabel(frame, text=content, font=("Consolas", 11), justify="left", anchor="w")
-            c_lbl.grid(row=1, column=0, padx=12, pady=(0, 10), sticky="w")
+            c_lbl = ctk.CTkLabel(
+                frame,
+                text=content,
+                font=("Consolas", 11),
+                justify="left",
+                anchor="w",
+                wraplength=640
+            )
+            c_lbl.grid(row=1, column=0, padx=12, pady=(0, 10), sticky="ew")
+            self.labels.append(c_lbl)
+
+        self.bind("<Configure>", self.on_window_resize)
 
         # Close Button
         btn_close = ctk.CTkButton(self, text="Schließen", command=self.destroy, width=120)
         btn_close.grid(row=2, column=0, padx=20, pady=(0, 15), sticky="e")
+
+    def on_window_resize(self, event):
+        # Update wraplength dynamically when window is resized
+        if event.widget == self:
+            new_wrap = max(300, event.width - 90)
+            for lbl in self.labels:
+                lbl.configure(wraplength=new_wrap)
 
 
 class OAuthTesterView(ctk.CTkFrame):
