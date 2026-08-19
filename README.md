@@ -14,31 +14,28 @@ Primarily built to test authenticated SMTP sending (Office 365, etc.) with stric
 
 ## Usage
 
-### CLI
+### 1. Graphical Interface (GUI)
+
+To start the desktop application (Windows/macOS or Linux with Desktop Environment / X11):
 
 ```bash
-# Send a test email
-er-mailtool send --to user@example.com --subject "Test" --body "Hello"
-
-# Test OAuth 2.0 Client Credentials flow (Microsoft Entra ID / Azure AD)
-er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --client-secret "<secret>" --test-graph
-
-# Test OAuth 2.0 JWT Bearer / Client Assertion flow
-er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --assertion "<jwt>" --auth-type jwt_bearer
-
-# Inspect JWT claims without signature verification
-er-mailtool inspect-jwt "<jwt-token>"
+# Start GUI directly
+poetry run er-mailtool
 ```
+*(Or double-click the compiled binary `er-mailtool` / `er-mailtool.exe` without CLI arguments.)*
 
-### API
+---
 
-Start the secure API server:
+### 2. API Server (Headless / Testing Environment)
+
+On headless Linux test servers without a display, start the REST API server:
 
 ```bash
-er-mailtool serve
+# Start API daemon on port 8000
+poetry run er-mailtool serve --host 0.0.0.0 --port 8000
 ```
 
-Access Swagger Docs at `http://localhost:8000/docs`.
+Access Swagger Documentation & Test Interface at `http://<server-ip>:8000/docs`.
 
 Key API Endpoints:
 - `POST /oauth/test`: Test OAuth 2.0 Client Credentials or JWT Bearer Assertion flow & validate permissions.
@@ -46,19 +43,24 @@ Key API Endpoints:
 - `POST /send`: Send email via authenticated SMTP.
 - `GET /mx/{domain}`, `GET /spf/{domain}`, `GET /dmarc/{domain}`, `GET /dkim/{domain}/{selector}`: DNS & Auth records.
 
-### Linux Server (Headless / Testing Environment)
+---
 
-If you are running on a test server without a graphical desktop (GUI), run in CLI or API daemon mode without requiring X11 / Tkinter:
+### 3. CLI Commands
+
+You can run direct diagnostic commands via CLI:
 
 ```bash
-# 1. Install dependencies via poetry
-poetry install
+# Send a test email
+poetry run er-mailtool send --to user@example.com --subject "Test" --body "Hello"
 
-# 2. Start the API server on all interfaces
-poetry run er-mailtool serve --host 0.0.0.0 --port 8000
+# Test OAuth 2.0 Client Credentials flow (Microsoft Entra ID / Azure AD)
+poetry run er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --client-secret "<secret>" --test-graph
 
-# 3. Or run CLI commands directly
-poetry run er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --client-secret "<secret>"
+# Test OAuth 2.0 JWT Bearer / Client Assertion flow
+poetry run er-mailtool test-oauth --tenant "<tenant-id>" --client-id "<app-id>" --assertion "<jwt>" --auth-type jwt_bearer
+
+# Inspect JWT claims without signature verification
+poetry run er-mailtool inspect-jwt "<jwt-token>"
 ```
 
 ### Configuration
