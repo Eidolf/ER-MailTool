@@ -12,6 +12,9 @@ Primarily built to test authenticated SMTP sending (Office 365, etc.) with stric
 - **Office 365 Ready**: Pre-configured for StartTLS (Port 587).
 - **DevSecOps**: Integrated SAST (CodeQL/Ruff), Dependency Scanning, and Auto-Fixing CI/CD.
 
+<img width="1096" height="828" alt="image" src="https://github.com/user-attachments/assets/fccb9ef2-a1e3-4fd3-9136-b5d899712e8c" />
+
+
 ## Usage
 
 ### 1. Graphical Interface (GUI)
