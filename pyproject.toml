@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "er-mailtool"
-version = "1.0.0"
+version = "2.0.0"
 description = "A portable, secure email testing tool with O365 support."
 authors = ["Eidolf <andreas@eidolf.de>"]
 packages = [{include = "src"}]
