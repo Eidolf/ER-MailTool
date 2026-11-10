@@ -1,14 +1,64 @@
 import base64
+import ipaddress
 import json
+import socket
 import ssl
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 
 class OAuthTester:
+    @staticmethod
+    def validate_safe_url(url: str, allow_http: bool = False) -> Tuple[bool, Optional[str]]:
+        """
+        Validates that a URL uses an allowed scheme (https, optionally http)
+        and does NOT point to localhost, private, reserved, or link-local IP addresses (SSRF protection).
+        """
+        try:
+            parsed = urllib.parse.urlparse(url.strip())
+        except Exception:
+            return False, "Malformed URL"
+
+        allowed_schemes = ("https", "http") if allow_http else ("https",)
+        if parsed.scheme.lower() not in allowed_schemes:
+            if not allow_http and parsed.scheme.lower() == "http":
+                return False, "Insecure URL scheme: HTTPS is required for OAuth2 token endpoints"
+            return False, f"Invalid URL scheme '{parsed.scheme}': only {'/'.join(allowed_schemes)} allowed"
+
+        hostname = parsed.hostname
+        if not hostname:
+            return False, "URL must contain a valid hostname"
+
+        # Check for localhost literals directly
+        if hostname.lower() in ("localhost", "localhost.localdomain"):
+            return False, "Access to localhost addresses is blocked for security reasons (SSRF)"
+
+        # Resolve IP addresses and verify they are globally routable / public
+        try:
+            addr_info = socket.getaddrinfo(hostname, None)
+        except socket.gaierror:
+            return False, f"Unable to resolve host: {hostname}"
+
+        for item in addr_info:
+            ip_str = item[4][0]
+            try:
+                ip_obj = ipaddress.ip_address(ip_str)
+                if (
+                    ip_obj.is_private
+                    or ip_obj.is_loopback
+                    or ip_obj.is_link_local
+                    or ip_obj.is_reserved
+                    or ip_obj.is_multicast
+                    or ip_obj.is_unspecified
+                ):
+                    return False, f"Target IP address '{ip_str}' is private, local, or reserved (SSRF protection)"
+            except ValueError:
+                return False, f"Invalid IP address resolved: {ip_str}"
+
+        return True, None
     @staticmethod
     def resolve_token_url(tenant_or_url: str) -> str:
         """
@@ -134,8 +184,9 @@ class OAuthTester:
             "User-Agent": "ER-MailTool/1.0.0 (OAuth2-Tester)"
         }
 
-        if not (token_url.startswith("https://") or token_url.startswith("http://")):
-            return {"success": False, "error": "Invalid URL scheme: only http/https allowed"}
+        is_safe, err_msg = cls.validate_safe_url(token_url, allow_http=False)
+        if not is_safe:
+            return {"success": False, "error": f"Invalid token URL: {err_msg}"}
 
         req = urllib.request.Request(token_url, data=data_encoded, headers=headers, method="POST")  # noqa: S310
         ssl_ctx = ssl.create_default_context()
@@ -212,8 +263,9 @@ class OAuthTester:
             "User-Agent": "ER-MailTool/1.0.0 (Graph-Validator)"
         }
 
-        if not (endpoint.startswith("https://") or endpoint.startswith("http://")):
-            return {"success": False, "error": "Invalid URL scheme: only http/https allowed"}
+        is_safe, err_msg = OAuthTester.validate_safe_url(endpoint, allow_http=False)
+        if not is_safe:
+            return {"success": False, "error": f"Invalid endpoint URL: {err_msg}"}
 
         req = urllib.request.Request(endpoint, headers=headers, method="GET")  # noqa: S310
         ssl_ctx = ssl.create_default_context()

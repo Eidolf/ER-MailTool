@@ -202,3 +202,46 @@ def test_cli_test_oauth_command():
         ])
         assert res.exit_code == 0
         assert "Token Acquired Successfully" in res.stdout
+
+
+def test_ssrf_prevention():
+    # Loopback IP
+    res_loopback = OAuthTester.test_oauth_auth(
+        tenant_or_token_url="https://127.0.0.1:8080/token",
+        client_id="test",
+        auth_type="client_secret",
+        client_secret="secret"
+    )
+    assert res_loopback["success"] is False
+    assert "SSRF" in res_loopback["error"]
+
+    # Localhost string
+    res_localhost = OAuthTester.test_oauth_auth(
+        tenant_or_token_url="https://localhost:8443/token",
+        client_id="test",
+        auth_type="client_secret",
+        client_secret="secret"
+    )
+    assert res_localhost["success"] is False
+    assert "SSRF" in res_localhost["error"]
+
+    # Cloud metadata endpoint (link-local)
+    res_metadata = OAuthTester.test_oauth_auth(
+        tenant_or_token_url="https://169.254.169.254/latest/meta-data/",
+        client_id="test",
+        auth_type="client_secret",
+        client_secret="secret"
+    )
+    assert res_metadata["success"] is False
+    assert "SSRF" in res_metadata["error"]
+
+    # Insecure scheme (HTTP)
+    res_http = OAuthTester.test_oauth_auth(
+        tenant_or_token_url="http://login.microsoftonline.com/test/oauth2/v2.0/token",
+        client_id="test",
+        auth_type="client_secret",
+        client_secret="secret"
+    )
+    assert res_http["success"] is False
+    assert "HTTPS is required" in res_http["error"]
+
