@@ -3,6 +3,7 @@ import customtkinter as ctk
 from src.ui.anonymous_smtp import AnonymousSMTPTester
 from src.ui.authenticated_smtp import AuthenticatedSMTPTester
 from src.ui.blacklist_check import BlacklistCheck
+from src.ui.connection_tester import ConnectionTester
 from src.ui.dkim_lookup import DKIMLookup
 from src.ui.dmarc_analyzer import DMARCAnalyzer
 from src.ui.dns_lookup import DNSLookup
@@ -30,7 +31,7 @@ class ERMailToolGUI(ctk.CTk):
         # --- Sidebar ---
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(16, weight=1)
+        self.sidebar_frame.grid_rowconfigure(17, weight=1)
 
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="ER-MailTool", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
@@ -38,23 +39,24 @@ class ERMailToolGUI(ctk.CTk):
         # Nav Buttons
         # Connect & Test
         self.create_nav_label("Connectivity", 1)
-        self.btn_auth_smtp = self.create_nav_button("Authenticated SMTP", 2, self.show_auth_smtp)
-        self.btn_anon_smtp = self.create_nav_button("Anonymous SMTP", 3, self.show_anon_smtp)
-        self.btn_port = self.create_nav_button("Port Scanner", 4, self.show_port)
+        self.btn_connection = self.create_nav_button("IMAP / SMTP Test", 2, self.show_connection)
+        self.btn_auth_smtp = self.create_nav_button("Authenticated SMTP", 3, self.show_auth_smtp)
+        self.btn_anon_smtp = self.create_nav_button("Anonymous SMTP", 4, self.show_anon_smtp)
+        self.btn_port = self.create_nav_button("Port Scanner", 5, self.show_port)
         
         # DNS & Network
-        self.create_nav_label("Network / DNS", 5)
-        self.btn_mx = self.create_nav_button("MX Lookup", 6, self.show_mx)
-        self.btn_dns = self.create_nav_button("DNS Lookup", 7, self.show_dns)
-        self.btn_whois = self.create_nav_button("Whois Lookup", 8, self.show_whois)
+        self.create_nav_label("Network / DNS", 6)
+        self.btn_mx = self.create_nav_button("MX Lookup", 7, self.show_mx)
+        self.btn_dns = self.create_nav_button("DNS Lookup", 8, self.show_dns)
+        self.btn_whois = self.create_nav_button("Whois Lookup", 9, self.show_whois)
         
         # Security / Auth
-        self.create_nav_label("Security / Auth", 9)
-        self.btn_oauth = self.create_nav_button("OAuth 2.0 Auth Test", 10, self.show_oauth)
-        self.btn_spf = self.create_nav_button("SPF Analyzer", 11, self.show_spf)
-        self.btn_dmarc = self.create_nav_button("DMARC Analyzer", 12, self.show_dmarc)
-        self.btn_dkim = self.create_nav_button("DKIM Lookup", 13, self.show_dkim)
-        self.btn_rbl = self.create_nav_button("Blacklist Check", 14, self.show_rbl)
+        self.create_nav_label("Security / Auth", 10)
+        self.btn_oauth = self.create_nav_button("OAuth 2.0 Auth Test", 11, self.show_oauth)
+        self.btn_spf = self.create_nav_button("SPF Analyzer", 12, self.show_spf)
+        self.btn_dmarc = self.create_nav_button("DMARC Analyzer", 13, self.show_dmarc)
+        self.btn_dkim = self.create_nav_button("DKIM Lookup", 14, self.show_dkim)
+        self.btn_rbl = self.create_nav_button("Blacklist Check", 15, self.show_rbl)
 
         # --- Main Content Area ---
         self.main_area = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -64,6 +66,7 @@ class ERMailToolGUI(ctk.CTk):
 
         # -- Views --
         self.views = {}
+        self.views["connection"] = ConnectionTester(self.main_area)
         self.views["auth_smtp"] = AuthenticatedSMTPTester(self.main_area)
         self.views["anon_smtp"] = AnonymousSMTPTester(self.main_area)
         self.views["mx"] = MXLookup(self.main_area)
@@ -94,6 +97,7 @@ class ERMailToolGUI(ctk.CTk):
         self.views[view_name].grid(row=0, column=0, sticky="nsew")
 
     def show_auth_smtp(self): self.show_view("auth_smtp")
+    def show_connection(self): self.show_view("connection")
     def show_anon_smtp(self): self.show_view("anon_smtp")
     def show_mx(self): self.show_view("mx")
     def show_dns(self): self.show_view("dns")

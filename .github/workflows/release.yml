@@ -74,3 +74,4 @@ jobs:
             release-assets/er-mailtool
             release-assets/er-mailtool.exe
             release-assets/sbom.spdx.json
+            release-assets/er-mailtool-complete.zip

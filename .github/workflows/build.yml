@@ -62,3 +62,49 @@ jobs:
         with:
           name: sbom
           path: sbom.spdx.json
+
+  package:
+    needs: [build, sbom]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux executable
+        uses: actions/download-artifact@v4
+        with:
+          name: er-mailtool-linux
+          path: package/linux
+
+      - name: Download Windows executable
+        uses: actions/download-artifact@v4
+        with:
+          name: er-mailtool-windows
+          path: package/windows
+
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: package/sbom
+
+      - name: Create complete ZIP
+        run: |
+          test -s package/linux/er-mailtool
+          test -s package/windows/er-mailtool.exe
+          test -s package/sbom/sbom.spdx.json
+          chmod +x package/linux/er-mailtool
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          files = (Path("package/linux/er-mailtool"), Path("package/windows/er-mailtool.exe"),
+                   Path("package/sbom/sbom.spdx.json"))
+          with ZipFile("er-mailtool-complete.zip", "w", ZIP_DEFLATED) as archive:
+              for file in files:
+                  archive.write(file, file.name)
+          PY
+
+      - name: Upload complete ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: er-mailtool-complete
+          path: er-mailtool-complete.zip
+          if-no-files-found: error
